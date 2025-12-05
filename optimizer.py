@@ -28,23 +28,20 @@ def check_jellyfin_connection(url, api_key):
         r.raise_for_status()
         log("Connected to Jellyfin successfully.")
         
-        # Check transcoding config
-        config_url = f"{url}/System/Configuration"
-        r = requests.get(config_url, headers=headers, timeout=10)
+        # Fetch transcoding config
+        encoding_url = f"{url}/System/Configuration/encoding"
+        r = requests.get(encoding_url, headers=headers, timeout=10)
         r.raise_for_status()
         config = r.json()
         
-        transcoding_mode = config.get('TranscodingMode', 'Unknown') # Note: Key might vary, just an example
-        # In actual Jellyfin API, transcoding settings are often under a specific key or endpoint
-        # Let's try to get specific transcoding settings if possible, but for now we just confirm connection
-        # and maybe print some info if we find it.
-        
-        # Actually, /System/Configuration returns a huge object. 
-        # We might need to look for 'Transcoding' related keys.
+        log("Transcoding Configuration retrieved.")
+        log(f"Hardware Acceleration Type: {config.get('HardwareAccelerationType', 'None')}")
+        log(f"VAAPI Device: {config.get('VaapiDevice', 'N/A')}")
+        log(f"QSV Device: {config.get('QsvDevice', 'N/A')}")
         
         return True
     except Exception as e:
-        log(f"Failed to connect to Jellyfin: {e}")
+        log(f"Failed to connect to Jellyfin or retrieve config: {e}")
         return False
 
 # Global variables
