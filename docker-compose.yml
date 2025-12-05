@@ -6,12 +6,6 @@ services:
       - .env
     ports:
       - "5000:5000"
-    # --- Hardware Acceleration Support ---
-    # Uncomment the section below that matches your hardware.
-
-    # Intel / AMD (VAAPI/QSV)
-    # devices:
-    #   - /dev/dri:/dev/dri
 
     privileged: true
     restart: unless-stopped
