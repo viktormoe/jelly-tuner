@@ -292,14 +292,56 @@ def run_benchmark():
         # Check if jellybench is available as a command
         cmd = ["jellybench", "--ffmpeg", "/app/jellybench_data/ffmpeg"]
         
-                break
-                
-            if _process.poll() is not None:
-                # Process finished, read remaining
-                # But select should handle it.
-                # If poll is not None, we should continue reading until EOF (read returns empty)
-                # But with PTY, read might throw EIO on close.
-                pass
+        log(f"Running benchmark command: {' '.join(cmd)}")
+        log(f"Saving logs to: {log_filename}")
+        
+        with open(log_filepath, 'w') as log_file:
+            _process = subprocess.Popen(
+                cmd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                stdin=slave_fd,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                preexec_fn=os.setsid # Create new session
+            )
+            
+            os.close(slave_fd) # Close slave in parent
+            
+            # Read loop
+            buffer = ""
+            while True:
+                try:
+                    r, w, e = select.select([master_fd], [], [], 0.1)
+                    if master_fd in r:
+                        data = os.read(master_fd, 1024)
+                        if not data:
+                            break
+                        
+                        text = data.decode('utf-8', errors='replace')
+                        
+                        # Write to file
+                        log_file.write(text)
+                        log_file.flush()
+                        
+                        buffer += text
+                        
+                        # Process buffer for lines
+                        while '\n' in buffer:
+                            line, buffer = buffer.split('\n', 1)
+                            log(line.strip())
+                        
+                        # Heuristic for prompts
+                        if buffer.strip().endswith(":"): 
+                             log(buffer.strip())
+                             buffer = ""
+                             
+                except OSError:
+                    break
+                    
+                if _process.poll() is not None:
+                    pass
 
     except FileNotFoundError:
         log("Error: 'jellybench' command not found.")
