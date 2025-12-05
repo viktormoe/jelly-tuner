@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  jelly-tuner:
+    build: .
+    environment:
+      - JELLYFIN_URL=http://192.168.1.50:8096
+      - JELLYFIN_API_KEY=your_api_key_here
+    # --- Hardware Acceleration Support ---
+    # Uncomment the section below that matches your hardware.
+
+    # Intel / AMD (VAAPI/QSV)
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+    # NVIDIA
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
