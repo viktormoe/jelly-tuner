@@ -42,14 +42,38 @@ def check_jellyfin_connection(url, api_key):
         return True
     except Exception as e:
         log(f"Failed to connect to Jellyfin or retrieve config: {e}")
+        response = wait_for_input("Connection failed. Continue anyway? (y/n)")
+        if response and response.lower().strip() == 'y':
+            return True
         return False
+
+import threading
 
 # Global variables
 _process = None
 _master_fd = None
+_input_event = threading.Event()
+_last_input = None
+_waiting_for_input = False
+
+def wait_for_input(prompt):
+    global _waiting_for_input, _last_input
+    log(prompt)
+    _waiting_for_input = True
+    _input_event.clear()
+    _input_event.wait()
+    _waiting_for_input = False
+    return _last_input
 
 def send_input(text):
-    global _master_fd
+    global _master_fd, _waiting_for_input, _last_input
+    
+    if _waiting_for_input:
+        _last_input = text
+        _input_event.set()
+        log(f"Received input: {text}")
+        return
+
     if _master_fd is not None:
         try:
             log(f"Sending input: {text}")
