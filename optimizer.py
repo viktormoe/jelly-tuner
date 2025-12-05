@@ -5,6 +5,8 @@ import subprocess
 import json
 import time
 
+import shutil
+
 # Global logger callback
 _log_callback = None
 
@@ -16,6 +18,25 @@ def log(msg):
     print(f"[Auto-Tune] {msg}", flush=True)
     if _log_callback:
         _log_callback(msg)
+
+def setup_ffmpeg():
+    target_dir = "/app/jellybench_data/ffmpeg"
+    cache_file = "/usr/local/share/jellybench_cache/jellyfin-ffmpeg_7.0.2-3_portable_linux64-gpl.tar.xz"
+    target_file = os.path.join(target_dir, os.path.basename(cache_file))
+    
+    if not os.path.exists(target_file):
+        log("FFmpeg not found in data directory. Copying from cache...")
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+            if os.path.exists(cache_file):
+                shutil.copy2(cache_file, target_file)
+                log("FFmpeg copied successfully.")
+            else:
+                log("Error: Cached FFmpeg not found.")
+        except Exception as e:
+            log(f"Failed to copy FFmpeg: {e}")
+    else:
+        log("FFmpeg found in data directory.")
 
 def check_jellyfin_connection(url, api_key):
     log("Connecting to Jellyfin...")
@@ -189,6 +210,7 @@ def run_optimization_process(url, api_key):
     if not check_jellyfin_connection(url, api_key):
         return
         
+    setup_ffmpeg()
     results = run_benchmark()
     analyze_results(results)
 
