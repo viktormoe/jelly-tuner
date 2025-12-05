@@ -66,6 +66,53 @@ def stop_benchmark():
     optimizer.stop_benchmark()
     return jsonify({"message": "Benchmark stop requested"})
 
+@app.route('/api/backups', methods=['GET'])
+def list_backups():
+    backups = optimizer.list_backups()
+    return jsonify(backups)
+
+@app.route('/api/backup', methods=['POST'])
+def create_backup():
+    url = os.environ.get('JELLYFIN_URL')
+    api_key = os.environ.get('JELLYFIN_API_KEY')
+    filename = optimizer.backup_settings(url, api_key)
+    if filename:
+        return jsonify({"message": "Backup created", "filename": filename})
+    else:
+        return jsonify({"error": "Backup failed"}), 500
+
+@app.route('/api/restore', methods=['POST'])
+def restore_backup():
+    data = request.json
+    filename = data.get('filename')
+    if not filename:
+        return jsonify({"error": "Filename required"}), 400
+        
+    url = os.environ.get('JELLYFIN_URL')
+    api_key = os.environ.get('JELLYFIN_API_KEY')
+    success = optimizer.restore_settings(url, api_key, filename)
+    
+    if success:
+        return jsonify({"message": "Settings restored successfully"})
+    else:
+        return jsonify({"error": "Restore failed"}), 500
+
+@app.route('/api/apply', methods=['POST'])
+def apply_settings():
+    data = request.json
+    config = data.get('config')
+    if not config:
+        return jsonify({"error": "Config required"}), 400
+        
+    url = os.environ.get('JELLYFIN_URL')
+    api_key = os.environ.get('JELLYFIN_API_KEY')
+    success = optimizer.apply_recommendations(url, api_key, config)
+    
+    if success:
+        return jsonify({"message": "Settings applied successfully"})
+    else:
+        return jsonify({"error": "Failed to apply settings"}), 500
+
 @app.route('/api/status')
 def get_status():
     return jsonify({

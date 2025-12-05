@@ -6,6 +6,8 @@ import json
 import time
 
 import shutil
+import glob
+from datetime import datetime
 
 # Global logger callback
 _log_callback = None
@@ -37,6 +39,91 @@ def setup_ffmpeg():
             log(f"Failed to copy FFmpeg: {e}")
     else:
         log("FFmpeg found in data directory.")
+
+def get_jellyfin_config(url, api_key):
+    headers = {'X-Emby-Token': api_key}
+    try:
+        encoding_url = f"{url}/System/Configuration/encoding"
+        r = requests.get(encoding_url, headers=headers, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        log(f"Failed to fetch config: {e}")
+        return None
+
+def set_jellyfin_config(url, api_key, config):
+    headers = {'X-Emby-Token': api_key, 'Content-Type': 'application/json'}
+    try:
+        encoding_url = f"{url}/System/Configuration/encoding"
+        r = requests.post(encoding_url, headers=headers, json=config, timeout=10)
+        r.raise_for_status()
+        log("Configuration updated successfully.")
+        return True
+    except Exception as e:
+        log(f"Failed to update config: {e}")
+        return False
+
+def backup_settings(url, api_key):
+    log("Backing up current settings...")
+    config = get_jellyfin_config(url, api_key)
+    if not config:
+        return False
+    
+    backup_dir = "/app/jellybench_data/backups"
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"backup_{timestamp}.json"
+    filepath = os.path.join(backup_dir, filename)
+    
+    try:
+        with open(filepath, 'w') as f:
+            json.dump(config, f, indent=4)
+        log(f"Backup saved to {filename}")
+        return filename
+    except Exception as e:
+        log(f"Failed to save backup: {e}")
+        return False
+
+def list_backups():
+    backup_dir = "/app/jellybench_data/backups"
+    if not os.path.exists(backup_dir):
+        return []
+    
+    files = glob.glob(os.path.join(backup_dir, "*.json"))
+    backups = []
+    for f in files:
+        backups.append({
+            "filename": os.path.basename(f),
+            "path": f,
+            "date": datetime.fromtimestamp(os.path.getmtime(f)).strftime("%Y-%m-%d %H:%M:%S")
+        })
+    # Sort by date descending
+    backups.sort(key=lambda x: x['filename'], reverse=True)
+    return backups
+
+def restore_settings(url, api_key, filename):
+    log(f"Restoring settings from {filename}...")
+    backup_dir = "/app/jellybench_data/backups"
+    filepath = os.path.join(backup_dir, filename)
+    
+    if not os.path.exists(filepath):
+        log("Backup file not found.")
+        return False
+        
+    try:
+        with open(filepath, 'r') as f:
+            config = json.load(f)
+        return set_jellyfin_config(url, api_key, config)
+    except Exception as e:
+        log(f"Failed to load backup: {e}")
+        return False
+
+def apply_recommendations(url, api_key, recommendations):
+    log("Applying recommended settings...")
+    # For now, recommendations is expected to be a full config object
+    # In the future, this might merge specific changes into the current config
+    return set_jellyfin_config(url, api_key, recommendations)
 
 def check_jellyfin_connection(url, api_key):
     log("Connecting to Jellyfin...")

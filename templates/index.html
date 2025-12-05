@@ -287,6 +287,22 @@
             </div>
         </div>
 
+        <div class="card">
+            <h3>🛠️ Settings Management</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn" onclick="createBackup()">💾 Backup Settings</button>
+                <button class="btn" onclick="applyRecommendations()" style="background-color: var(--success-color);">✅
+                    Apply Recommendations</button>
+            </div>
+
+            <h4>Available Backups</h4>
+            <div id="backupList"
+                style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
+                <!-- Backups will be listed here -->
+                <div style="color: var(--text-secondary); font-style: italic;">Loading backups...</div>
+            </div>
+        </div>
+
         <div>
             <div class="log-controls">
                 <button class="icon-btn" onclick="adjustZoom(-1)" title="Zoom Out">➖</button>
@@ -379,6 +395,69 @@
             }
         }
 
+        async function loadBackups() {
+            const list = document.getElementById('backupList');
+            try {
+                const response = await fetch('/api/backups');
+                const backups = await response.json();
+
+                if (backups.length === 0) {
+                    list.innerHTML = '<div style="color: var(--text-secondary); font-style: italic;">No backups found.</div>';
+                    return;
+                }
+
+                list.innerHTML = backups.map(b => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
+                        <div>
+                            <div style="font-weight: bold;">${b.filename}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">${b.date}</div>
+                        </div>
+                        <button class="btn" onclick="restoreBackup('${b.filename}')" style="padding: 6px 12px; font-size: 0.9rem;">Restore</button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error("Error loading backups:", e);
+                list.innerHTML = '<div style="color: var(--error-color);">Failed to load backups.</div>';
+            }
+        }
+
+        async function createBackup() {
+            if (!confirm("Create a new backup of current Jellyfin settings?")) return;
+            try {
+                const response = await fetch('/api/backup', { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert("Backup created: " + data.filename);
+                    loadBackups();
+                } else {
+                    alert("Backup failed: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error creating backup:", e);
+                alert("Error creating backup");
+            }
+        }
+
+        async function restoreBackup(filename) {
+            if (!confirm(`Are you sure you want to restore settings from ${filename}? This will overwrite current Jellyfin configuration.`)) return;
+            try {
+                const response = await fetch('/api/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+                if (response.ok) {
+                    alert("Settings restored successfully!");
+                } else {
+                    const data = await response.json();
+                    alert("Restore failed: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error restoring backup:", e);
+                alert("Error restoring backup");
+            }
+        }
+
         async function sendInput() {
             const inputField = document.getElementById('consoleInput');
             const text = inputField.value;
@@ -398,14 +477,24 @@
             }
         }
 
+        async function applyRecommendations() {
+            if (!confirm("Apply recommended settings? (Note: This is a placeholder action for now)")) return;
+            // In a real scenario, we'd pass the recommended config here.
+            // For now, we'll just hit the endpoint with a dummy config or handle it on backend.
+            alert("Recommendation application logic is ready but waiting for benchmark results integration.");
+        }
+
+        // Allow pressing Enter to send
         document.getElementById('consoleInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 sendInput();
             }
         });
 
+        // Start polling
         setInterval(pollStatus, 1000);
         pollStatus();
+        loadBackups(); // Initial load
     </script>
 </body>
 
