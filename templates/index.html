@@ -5,140 +5,441 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jellyfin Auto-Tune</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-color: #58a6ff;
+            --accent-hover: #1f6feb;
+            --success-color: #238636;
+            --error-color: #da3633;
+            --warning-color: #d29922;
+            --border-color: #30363d;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
         body {
-            background-color: #101010;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
             width: 100%;
-            background-color: #1f1f1f;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
         }
 
         h1 {
-            color: #00a4dc;
-            text-align: center;
-            margin-bottom: 30px;
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
         .status-bar {
-            background-color: #2a2a2a;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .status-text {
-            font-weight: bold;
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
         }
 
         .status-Idle {
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .status-Running {
-            color: #ffcc00;
+            color: var(--warning-color);
+            background-color: rgba(210, 153, 34, 0.15);
         }
 
         .status-Complete {
-            color: #00cc66;
+            color: var(--success-color);
+            background-color: rgba(35, 134, 54, 0.15);
         }
 
         .status-Error {
-            color: #ff4444;
+            color: var(--error-color);
+            background-color: rgba(218, 54, 51, 0.15);
         }
 
-        button {
-            background-color: #00a4dc;
-            color: white;
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #fff;
             border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
-            width: 100%;
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        button:hover {
-            background-color: #0085b2;
+        .btn:hover {
+            background-color: var(--accent-hover);
         }
 
-        button:disabled {
-            background-color: #444;
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
             cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        .log-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
         }
 
         .log-window {
             background-color: #000;
             color: #00ff00;
-            font-family: 'Consolas', 'Monaco', monospace;
+            /* Classic terminal green */
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
             padding: 15px;
-            border-radius: 5px;
-            height: 300px;
+            border-radius: 8px;
+            height: 600px;
+            /* Increased height */
             overflow-y: auto;
-            margin-top: 20px;
             white-space: pre-wrap;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
+            line-height: 1.5;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+            transition: font-size 0.1s;
+        }
+
+        .log-window::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-window::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .log-window::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .log-window {
+                height: 400px;
+                /* Increased mobile height too */
+                font-size: 0.8rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>🎵 Jellyfin Auto-Tune</h1>
+        <header>
+            <h1>🎵 Jellyfin Auto-Tune</h1>
+        </header>
 
-        <div class="status-bar">
-            <span>Status: <span id="status-text" class="status-Idle">Idle</span></span>
-        </div>
-        <div class="controls">
-            <button id="startBtn" onclick="startBenchmark()">Start Benchmark</button>
-            <div class="input-group" style="margin-top: 10px;">
-                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)...">
-                <button onclick="sendInput()">Send</button>
+        <div class="card">
+            <div class="status-bar">
+                <span class="status-label">Current Status</span>
+                <span id="status-text" class="status-value status-Idle">Idle</span>
             </div>
         </div>
 
-        <div class="log-window" id="log-window">
-            Waiting to start...
+        <div class="card controls">
+            <div style="display: flex; gap: 10px;">
+                <button id="startBtn" class="btn" onclick="startBenchmark()">
+                    <span>🚀</span> Start Benchmark
+                </button>
+                <button id="stopBtn" class="btn" onclick="stopBenchmark()" style="background-color: var(--error-color);"
+                    disabled>
+                    <span>🛑</span> Stop
+                </button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
+                    autocomplete="off">
+                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🛠️ Settings Management</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <button class="btn" onclick="openBackupModal()">💾 Backup Settings</button>
+                <button class="btn" onclick="showConfig()" style="background-color: var(--accent-hover);">👁️ Show
+                    Config</button>
+                <button class="btn" onclick="testConnection()" style="background-color: var(--warning-color);">📶 Test
+                    Connection</button>
+                <button class="btn" onclick="applyRecommendations()" style="background-color: var(--success-color);">✅
+                    Apply Recommendations</button>
+            </div>
+
+            <h4>Available Backups</h4>
+            <div id="backupList"
+                style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
+                <!-- Backups will be listed here -->
+                <div style="color: var(--text-secondary); font-style: italic;">Loading backups...</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="log-controls">
+                <button class="icon-btn" onclick="clearLogs()" title="Clear Logs">🗑️</button>
+                <button class="icon-btn" onclick="adjustZoom(-1)" title="Zoom Out">➖</button>
+                <button class="icon-btn" onclick="adjustZoom(1)" title="Zoom In">➕</button>
+            </div>
+            <div class="log-window" id="log-window">Waiting to start...</div>
+        </div>
+    </div>
+
+    <!-- Backup Modal -->
+    <div class="modal-overlay" id="backupModal">
+        <div class="modal">
+            <h3>Create Backup</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 15px;">Enter a name for this backup (optional):</p>
+            <input type="text" id="backupName" placeholder="e.g., before-benchmark"
+                style="width: 100%; box-sizing: border-box;">
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('backupModal')"
+                    style="background-color: transparent; border: 1px solid var(--border-color);">Cancel</button>
+                <button class="btn" onclick="confirmBackup()">Create Backup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal" style="max-width: 800px; width: 90%;">
+            <h3>Current Configuration</h3>
+            <pre id="configContent"
+                style="background: #000; padding: 15px; border-radius: 6px; overflow: auto; max-height: 500px; font-family: var(--font-mono); font-size: 0.85rem; color: #00ff00;"></pre>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('configModal')">Close</button>
+            </div>
         </div>
     </div>
 
     <script>
         const statusText = document.getElementById('status-text');
         const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const logWindow = document.getElementById('log-window');
         let pollingInterval = null;
+        let lastLogContent = "";
+        let currentFontSize = 14.4; // Default 0.9rem approx 14.4px
+
+        function adjustZoom(delta) {
+            currentFontSize += delta;
+            if (currentFontSize < 8) currentFontSize = 8;
+            if (currentFontSize > 32) currentFontSize = 32;
+            logWindow.style.fontSize = `${currentFontSize}px`;
+        }
 
         function updateUI(data) {
             statusText.textContent = data.status;
-            statusText.className = `status-text status-${data.status}`;
+            // Remove old status classes
+            statusText.classList.remove('status-Idle', 'status-Running', 'status-Complete', 'status-Error');
+            // Add new status class
+            statusText.classList.add(`status-${data.status}`);
 
             if (data.status === 'Running') {
                 startBtn.disabled = true;
-                startBtn.textContent = "Benchmarking...";
+                startBtn.innerHTML = '<span>⏳</span> Benchmarking...';
+                stopBtn.disabled = false;
             } else {
                 startBtn.disabled = false;
-                startBtn.textContent = "Start Benchmark";
+                startBtn.innerHTML = '<span>🚀</span> Start Benchmark';
+                stopBtn.disabled = true;
             }
 
             if (data.logs && data.logs.length > 0) {
-                logWindow.textContent = data.logs.join('\n');
-                logWindow.scrollTop = logWindow.scrollHeight;
+                const newLogContent = data.logs.join('\n');
+
+                if (newLogContent !== lastLogContent) {
+                    const isScrolledToBottom = logWindow.scrollHeight - logWindow.clientHeight <= logWindow.scrollTop + 50;
+
+                    logWindow.textContent = newLogContent;
+                    lastLogContent = newLogContent;
+
+                    if (isScrolledToBottom) {
+                        logWindow.scrollTop = logWindow.scrollHeight;
+                    }
+                }
             }
         }
 
@@ -156,12 +457,182 @@
             try {
                 const response = await fetch('/api/start', { method: 'POST' });
                 if (response.ok) {
-                    // Polling is handled by the interval
+                    // Polling continues via interval
                 } else {
                     alert("Failed to start benchmark");
                 }
             } catch (e) {
                 console.error("Error starting benchmark:", e);
+            }
+        }
+
+        async function stopBenchmark() {
+            try {
+                const response = await fetch('/api/stop', { method: 'POST' });
+                if (!response.ok) {
+                    alert("Failed to stop benchmark");
+                }
+            } catch (e) {
+                console.error("Error stopping benchmark:", e);
+            }
+        }
+
+        async function loadBackups() {
+            const list = document.getElementById('backupList');
+            try {
+                const response = await fetch('/api/backups');
+                const backups = await response.json();
+
+                if (backups.length === 0) {
+                    list.innerHTML = '<div style="color: var(--text-secondary); font-style: italic;">No backups found.</div>';
+                    return;
+                }
+
+                list.innerHTML = backups.map(b => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
+                        <div style="flex-grow: 1; margin-right: 10px;">
+                            <div style="font-weight: bold;">${b.filename}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">${b.date}</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <a href="/api/backup/download/${b.filename}" class="btn" style="padding: 6px 10px; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center;" title="Download">⬇️</a>
+                            <button class="btn" onclick="restoreBackup('${b.filename}')" style="padding: 6px 10px; font-size: 0.9rem;" title="Restore">↩️</button>
+                            <button class="btn" onclick="deleteBackup('${b.filename}')" style="padding: 6px 10px; font-size: 0.9rem; background-color: var(--error-color);" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error("Error loading backups:", e);
+                list.innerHTML = '<div style="color: var(--error-color);">Failed to load backups.</div>';
+            }
+        }
+
+        function openBackupModal() {
+            document.getElementById('backupModal').classList.add('active');
+            const nameInput = document.getElementById('backupName');
+
+            // Pre-fill with jelly-tune-YYYYMMDD_HHMMSS
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            nameInput.value = `jelly-tune-${year}${month}${day}_${hours}${minutes}${seconds}`;
+            nameInput.focus();
+            nameInput.select(); // Select all so user can easily overwrite if they want
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function confirmBackup() {
+            const nameInput = document.getElementById('backupName');
+            const customName = nameInput.value;
+
+            closeModal('backupModal');
+
+            try {
+                const response = await fetch('/api/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: customName })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert("Backup created: " + data.filename);
+                    nameInput.value = ''; // Reset input
+                    loadBackups();
+                } else {
+                    alert("Backup failed: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error creating backup:", e);
+                alert("Error creating backup");
+            }
+        }
+
+        async function deleteBackup(filename) {
+            if (!confirm(`Are you sure you want to DELETE backup ${filename}? This cannot be undone.`)) return;
+            try {
+                const response = await fetch('/api/backup/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+                if (response.ok) {
+                    loadBackups();
+                } else {
+                    const data = await response.json();
+                    alert("Delete failed: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error deleting backup:", e);
+                alert("Error deleting backup");
+            }
+        }
+
+        function clearLogs() {
+            logWindow.textContent = "";
+            lastLogContent = "";
+        }
+
+        async function testConnection() {
+            try {
+                const response = await fetch('/api/test-connection');
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`✅ Connected to Jellyfin!\nServer Name: ${data.info.ServerName}\nVersion: ${data.info.Version}`);
+                } else {
+                    alert(`❌ Connection Failed: ${data.message}`);
+                }
+            } catch (e) {
+                console.error("Error testing connection:", e);
+                alert("Error testing connection");
+            }
+        }
+
+        async function showConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('configContent').textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('configModal').classList.add('active');
+                } else {
+                    alert("Failed to fetch configuration");
+                }
+            } catch (e) {
+                console.error("Error fetching config:", e);
+                alert("Error fetching config");
+            }
+        }
+
+        async function createBackup() {
+            // Deprecated in favor of modal
+            openBackupModal();
+        }
+
+        async function restoreBackup(filename) {
+            if (!confirm(`Are you sure you want to restore settings from ${filename}? This will overwrite current Jellyfin configuration.`)) return;
+            try {
+                const response = await fetch('/api/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+                if (response.ok) {
+                    alert("Settings restored successfully!");
+                } else {
+                    const data = await response.json();
+                    alert("Restore failed: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error restoring backup:", e);
+                alert("Error restoring backup");
             }
         }
 
@@ -184,6 +655,13 @@
             }
         }
 
+        async function applyRecommendations() {
+            if (!confirm("Apply recommended settings? (Note: This is a placeholder action for now)")) return;
+            // In a real scenario, we'd pass the recommended config here.
+            // For now, we'll just hit the endpoint with a dummy config or handle it on backend.
+            alert("Recommendation application logic is ready but waiting for benchmark results integration.");
+        }
+
         // Allow pressing Enter to send
         document.getElementById('consoleInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
@@ -194,6 +672,7 @@
         // Start polling
         setInterval(pollStatus, 1000);
         pollStatus();
+        loadBackups(); // Initial load
     </script>
 </body>
 
