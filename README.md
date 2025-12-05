@@ -75,7 +75,7 @@ This project is designed to run anywhere Docker runs, including Docker Desktop (
 ### Running on Linux (Standard Docker)
 1.  Ensure `docker` and `docker-compose` are installed.
 2.  Verify hardware drivers (e.g., `ls /dev/dri` for Intel/AMD).
-3.  Run `docker-compose up --build`.
+3.  Run `docker compose up --build`.
 
 ### Running on Docker Desktop (Windows/Mac)
 1.  Install Docker Desktop.
