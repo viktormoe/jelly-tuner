@@ -166,7 +166,7 @@ def list_results():
     results = optimizer.list_results()
     return jsonify(results)
 
-@app.route('/api/results/<filename>', methods=['GET'])
+@app.route('/api/results/<path:filename>', methods=['GET'])
 def get_result(filename):
     content = optimizer.get_result_content(filename)
     if content is not None:

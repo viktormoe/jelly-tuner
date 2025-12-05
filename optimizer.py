@@ -151,39 +151,88 @@ def apply_recommendations(url, api_key, recommendations):
     return set_jellyfin_config(url, api_key, recommendations)
 
 def list_results():
-    results_dir = "/app/jellybench_data/results"
-    if not os.path.exists(results_dir):
-        return []
-        
-    results = []
-    for filename in os.listdir(results_dir):
-        if filename.endswith(".log"):
-            filepath = os.path.join(results_dir, filename)
-            timestamp = os.path.getmtime(filepath)
-            date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-            results.append({
-                "filename": filename,
-                "date": date_str,
-                "timestamp": timestamp
-            })
+    data_dir = "/app/jellybench_data"
+    results_dir = os.path.join(data_dir, "results") # Keep my own logs too?
     
-    # Sort by timestamp descending (newest first)
-    results.sort(key=lambda x: x['timestamp'], reverse=True)
-    return results
+    items = []
+    
+    # 1. Look for jellybench native results (results_run-...)
+    if os.path.exists(data_dir):
+        for name in os.listdir(data_dir):
+            path = os.path.join(data_dir, name)
+            if os.path.isdir(path) and name.startswith("results_run-"):
+                # Parse timestamp from name: results_run-YYYY-MM-DD_HH-MM-SS
+                try:
+                    date_part = name.replace("results_run-", "")
+                    # Format: YYYY-MM-DD_HH-MM-SS
+                    dt = datetime.strptime(date_part, "%Y-%m-%d_%H-%M-%S")
+                    date_str = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    timestamp = dt.timestamp()
+                    items.append({
+                        "filename": name, # Use directory name as ID
+                        "date": date_str,
+                        "timestamp": timestamp,
+                        "type": "native"
+                    })
+                except ValueError:
+                    pass # Ignore if format doesn't match
 
-def get_result_content(filename):
-    results_dir = "/app/jellybench_data/results"
-    filepath = os.path.join(results_dir, filename)
+    # 2. Look for my own console logs in results/
+    if os.path.exists(results_dir):
+        for filename in os.listdir(results_dir):
+            if filename.endswith(".log"):
+                filepath = os.path.join(results_dir, filename)
+                timestamp = os.path.getmtime(filepath)
+                date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                items.append({
+                    "filename": "results/" + filename, # distinct path
+                    "date": date_str + " (Console)",
+                    "timestamp": timestamp,
+                    "type": "console"
+                })
     
-    if not os.path.exists(filepath):
-        return None
-        
-    try:
-        with open(filepath, 'r') as f:
-            return f.read()
-    except Exception as e:
-        log(f"Failed to read result file: {e}")
-        return None
+    # Sort by timestamp descending
+    items.sort(key=lambda x: x['timestamp'], reverse=True)
+    return items
+
+def get_result_content(identifier):
+    data_dir = "/app/jellybench_data"
+    
+    # Check if it's one of my console logs
+    if identifier.startswith("results/"):
+        filepath = os.path.join(data_dir, identifier)
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, 'r') as f:
+                    return f.read()
+            except Exception as e:
+                return f"Error reading file: {e}"
+        return "File not found."
+
+    # Otherwise assume it's a directory name (results_run-...)
+    dir_path = os.path.join(data_dir, identifier)
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        # Find a .log file inside
+        log_content = ""
+        found_log = False
+        try:
+            for fname in os.listdir(dir_path):
+                if fname.endswith(".log"):
+                    found_log = True
+                    log_path = os.path.join(dir_path, fname)
+                    log_content += f"--- {fname} ---\n"
+                    with open(log_path, 'r') as f:
+                        log_content += f.read()
+                    log_content += "\n\n"
+            
+            if not found_log:
+                return "No .log files found in this result directory."
+            
+            return log_content
+        except Exception as e:
+            return f"Error reading results: {e}"
+            
+    return "Result not found."
 
 def get_system_info(url, api_key):
     headers = {'X-Emby-Token': api_key}
