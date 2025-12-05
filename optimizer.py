@@ -212,10 +212,55 @@ def get_result_content(identifier):
     # Otherwise assume it's a directory name (results_run-...)
     dir_path = os.path.join(data_dir, identifier)
     if os.path.exists(dir_path) and os.path.isdir(dir_path):
-        # Find a .log file inside
-        log_content = ""
-        found_log = False
-        try:
+        # Logs are in a 'log' subdirectory
+        log_dir = os.path.join(dir_path, "log")
+        if os.path.exists(log_dir) and os.path.isdir(log_dir):
+            log_content = ""
+            found_log = False
+            
+            # Try to read jellybench.log
+            jb_log = os.path.join(log_dir, "jellybench.log")
+            if os.path.exists(jb_log):
+                found_log = True
+                log_content += "--- jellybench.log ---\n"
+                try:
+                    with open(jb_log, 'r') as f:
+                        log_content += f.read()
+                except Exception as e:
+                    log_content += f"Error reading file: {e}\n"
+                log_content += "\n\n"
+
+            # Try to read jellybench-ffmpeg.log
+            ffmpeg_log = os.path.join(log_dir, "jellybench-ffmpeg.log")
+            if os.path.exists(ffmpeg_log):
+                found_log = True
+                log_content += "--- jellybench-ffmpeg.log ---\n"
+                try:
+                    with open(ffmpeg_log, 'r') as f:
+                        log_content += f.read()
+                except Exception as e:
+                    log_content += f"Error reading file: {e}\n"
+                log_content += "\n\n"
+            
+            # Fallback: read any .log file in log_dir if specific ones aren't found
+            if not found_log:
+                for fname in os.listdir(log_dir):
+                    if fname.endswith(".log"):
+                        found_log = True
+                        log_path = os.path.join(log_dir, fname)
+                        log_content += f"--- {fname} ---\n"
+                        with open(log_path, 'r') as f:
+                            log_content += f.read()
+                        log_content += "\n\n"
+
+            if not found_log:
+                return "No .log files found in the 'log' subdirectory."
+            
+            return log_content
+        else:
+             # Fallback for older runs or different structure: check root of result dir
+            log_content = ""
+            found_log = False
             for fname in os.listdir(dir_path):
                 if fname.endswith(".log"):
                     found_log = True
@@ -225,12 +270,10 @@ def get_result_content(identifier):
                         log_content += f.read()
                     log_content += "\n\n"
             
-            if not found_log:
-                return "No .log files found in this result directory."
+            if found_log:
+                return log_content
             
-            return log_content
-        except Exception as e:
-            return f"Error reading results: {e}"
+            return "No 'log' directory or .log files found."
             
     return "Result not found."
 
