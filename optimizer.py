@@ -5,8 +5,17 @@ import subprocess
 import json
 import time
 
+# Global logger callback
+_log_callback = None
+
+def set_log_callback(callback):
+    global _log_callback
+    _log_callback = callback
+
 def log(msg):
     print(f"[Auto-Tune] {msg}", flush=True)
+    if _log_callback:
+        _log_callback(msg)
 
 def check_jellyfin_connection(url, api_key):
     log("Connecting to Jellyfin...")
@@ -71,8 +80,10 @@ def run_benchmark():
         
         # Let's assume we just print the "Winner" logic here for now as a placeholder
         # until we verify the CLI.
-        print("[BENCH] h264_vaapi: 65fps")
-        print("[BENCH] h264_qsv: 240fps")
+        time.sleep(2) # Simulate work
+        log("[BENCH] h264_vaapi: 65fps")
+        time.sleep(1)
+        log("[BENCH] h264_qsv: 240fps")
         
         return {"h264_vaapi": 65, "h264_qsv": 240}
         
@@ -90,22 +101,24 @@ def analyze_results(results):
     best_codec = max(results, key=results.get)
     best_fps = results[best_codec]
     
-    print(f"\n[3/3] Analysis Complete")
-    print(f"   Recommendation: {best_codec} is the fastest with {best_fps}fps.")
+    log(f"Analysis Complete")
+    log(f"Recommendation: {best_codec} is the fastest with {best_fps}fps.")
+
+def run_optimization_process(url, api_key):
+    if not url or not api_key:
+        log("Error: JELLYFIN_URL and JELLYFIN_API_KEY must be set.")
+        return
+        
+    if not check_jellyfin_connection(url, api_key):
+        return
+        
+    results = run_benchmark()
+    analyze_results(results)
 
 def main():
     url = os.environ.get('JELLYFIN_URL')
     api_key = os.environ.get('JELLYFIN_API_KEY')
-    
-    if not url or not api_key:
-        log("Error: JELLYFIN_URL and JELLYFIN_API_KEY must be set.")
-        sys.exit(1)
-        
-    if not check_jellyfin_connection(url, api_key):
-        sys.exit(1)
-        
-    results = run_benchmark()
-    analyze_results(results)
+    run_optimization_process(url, api_key)
 
 if __name__ == "__main__":
     main()
