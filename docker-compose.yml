@@ -3,9 +3,8 @@ version: '3.8'
 services:
   jelly-tuner:
     build: .
-    environment:
-      - JELLYFIN_URL=http://192.168.1.50:8096
-      - JELLYFIN_API_KEY=your_api_key_here
+    env_file:
+      - .env
     ports:
       - "5000:5000"
     # --- Hardware Acceleration Support ---

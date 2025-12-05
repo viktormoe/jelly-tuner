@@ -32,10 +32,16 @@ This project consists of four core files. Ensure these exist in your project dir
 
 ### 1. Configuration
 
-Open `docker-compose.yml` and update the environment variables:
+1.  Rename `.env.example` to `.env` (if provided) or create a `.env` file.
+2.  Update the variables in `.env`:
 
-*   `JELLYFIN_URL`: Your server's local IP address (e.g., `http://192.168.1.50:8096`). **Do not use localhost.**
-*   `JELLYFIN_API_KEY`: The key you generated in the prerequisites.
+    ```env
+    JELLYFIN_URL=http://192.168.1.50:8096
+    JELLYFIN_API_KEY=your_api_key_here
+    ```
+
+    *   `JELLYFIN_URL`: Your server's local IP address. **Do not use localhost.**
+    *   `JELLYFIN_API_KEY`: The key you generated in the prerequisites.
 
 ### 2. Enable Hardware Access
 
