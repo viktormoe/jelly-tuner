@@ -161,6 +161,19 @@ def get_config():
     else:
         return jsonify({"error": "Failed to fetch configuration"}), 500
 
+@app.route('/api/results', methods=['GET'])
+def list_results():
+    results = optimizer.list_results()
+    return jsonify(results)
+
+@app.route('/api/results/<filename>', methods=['GET'])
+def get_result(filename):
+    content = optimizer.get_result_content(filename)
+    if content is not None:
+        return jsonify({"filename": filename, "content": content})
+    else:
+        return jsonify({"error": "File not found"}), 404
+
 @app.route('/api/status')
 def get_status():
     return jsonify({

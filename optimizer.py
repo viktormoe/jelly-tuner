@@ -150,6 +150,41 @@ def apply_recommendations(url, api_key, recommendations):
     # In the future, this might merge specific changes into the current config
     return set_jellyfin_config(url, api_key, recommendations)
 
+def list_results():
+    results_dir = "/app/jellybench_data/results"
+    if not os.path.exists(results_dir):
+        return []
+        
+    results = []
+    for filename in os.listdir(results_dir):
+        if filename.endswith(".log"):
+            filepath = os.path.join(results_dir, filename)
+            timestamp = os.path.getmtime(filepath)
+            date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            results.append({
+                "filename": filename,
+                "date": date_str,
+                "timestamp": timestamp
+            })
+    
+    # Sort by timestamp descending (newest first)
+    results.sort(key=lambda x: x['timestamp'], reverse=True)
+    return results
+
+def get_result_content(filename):
+    results_dir = "/app/jellybench_data/results"
+    filepath = os.path.join(results_dir, filename)
+    
+    if not os.path.exists(filepath):
+        return None
+        
+    try:
+        with open(filepath, 'r') as f:
+            return f.read()
+    except Exception as e:
+        log(f"Failed to read result file: {e}")
+        return None
+
 def get_system_info(url, api_key):
     headers = {'X-Emby-Token': api_key}
     try:
@@ -246,53 +281,17 @@ def run_benchmark():
     master_fd, slave_fd = pty.openpty()
     _master_fd = master_fd
     
+    # Setup results directory and log file
+    results_dir = "/app/jellybench_data/results"
+    os.makedirs(results_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"run_{timestamp}.log"
+    log_filepath = os.path.join(results_dir, log_filename)
+    
     try:
         # Check if jellybench is available as a command
         cmd = ["jellybench", "--ffmpeg", "/app/jellybench_data/ffmpeg"]
         
-        log("Running benchmark command: " + " ".join(cmd))
-        
-        _process = subprocess.Popen(
-            cmd,
-            stdout=slave_fd,
-            stderr=slave_fd,
-            stdin=slave_fd,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-            preexec_fn=os.setsid # Create new session
-        )
-        
-        os.close(slave_fd) # Close slave in parent
-        
-        # Read loop
-        buffer = ""
-        while True:
-            try:
-                r, w, e = select.select([master_fd], [], [], 0.1)
-                if master_fd in r:
-                    data = os.read(master_fd, 1024)
-                    if not data:
-                        break
-                    
-                    text = data.decode('utf-8', errors='replace')
-                    buffer += text
-                    
-                    # Process buffer for lines
-                    while '\n' in buffer:
-                        line, buffer = buffer.split('\n', 1)
-                        log(line.strip())
-                    
-                    # If buffer has data but no newline (e.g. prompt), log it if it's been a while?
-                    # Or just log it immediately if it looks like a prompt?
-                    # For simplicity, let's just log whatever remains if it doesn't end in newline 
-                    # but we want to avoid spamming partial chars.
-                    # Actually, for the prompt "Continue (y/n): ", we want to see it.
-                    if buffer.strip().endswith(":"): # Heuristic for prompts
-                         log(buffer.strip())
-                         buffer = ""
-                         
-            except OSError:
                 break
                 
             if _process.poll() is not None:

@@ -330,11 +330,6 @@
                 </button>
             </div>
 
-            <div class="input-group">
-                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
-                    autocomplete="off">
-                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
-            </div>
         </div>
 
         <div class="card">
@@ -357,7 +352,21 @@
             </div>
         </div>
 
+        <div class="card">
+            <h3>📜 Previous Runs</h3>
+            <div id="resultsList"
+                style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto;">
+                <!-- Results will be listed here -->
+                <div style="color: var(--text-secondary); font-style: italic;">Loading results...</div>
+            </div>
+        </div>
+
         <div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
+                    autocomplete="off">
+                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
+            </div>
             <div class="log-controls">
                 <button class="icon-btn" onclick="clearLogs()" title="Clear Logs">🗑️</button>
                 <button class="icon-btn" onclick="adjustZoom(-1)" title="Zoom Out">➖</button>
@@ -390,6 +399,18 @@
                 style="background: #000; padding: 15px; border-radius: 6px; overflow: auto; max-height: 500px; font-family: var(--font-mono); font-size: 0.85rem; color: #00ff00;"></pre>
             <div class="modal-actions">
                 <button class="btn" onclick="closeModal('configModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal" style="max-width: 800px; width: 90%;">
+            <h3 id="resultTitle">Benchmark Result</h3>
+            <pre id="resultContent"
+                style="background: #000; padding: 15px; border-radius: 6px; overflow: auto; max-height: 500px; font-family: var(--font-mono); font-size: 0.85rem; color: #00ff00;"></pre>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('resultModal')">Close</button>
             </div>
         </div>
     </div>
@@ -669,10 +690,54 @@
             }
         });
 
+        async function loadResults() {
+            const list = document.getElementById('resultsList');
+            try {
+                const response = await fetch('/api/results');
+                const results = await response.json();
+
+                if (results.length === 0) {
+                    list.innerHTML = '<div style="color: var(--text-secondary); font-style: italic;">No previous runs found.</div>';
+                    return;
+                }
+
+                list.innerHTML = results.map(r => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; cursor: pointer;" onclick="showResult('${r.filename}')">
+                        <div>
+                            <div style="font-weight: bold;">${r.filename}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">${r.date}</div>
+                        </div>
+                        <span style="font-size: 1.2rem;">📄</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error("Error loading results:", e);
+                list.innerHTML = '<div style="color: var(--error-color);">Failed to load results.</div>';
+            }
+        }
+
+        async function showResult(filename) {
+            try {
+                const response = await fetch(`/api/results/${filename}`);
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('resultTitle').textContent = data.filename;
+                    document.getElementById('resultContent').textContent = data.content;
+                    document.getElementById('resultModal').classList.add('active');
+                } else {
+                    alert("Failed to fetch result content");
+                }
+            } catch (e) {
+                console.error("Error fetching result:", e);
+                alert("Error fetching result");
+            }
+        }
+
         // Start polling
         setInterval(pollStatus, 1000);
         pollStatus();
         loadBackups(); // Initial load
+        loadResults(); // Initial load
     </script>
 </body>
 
