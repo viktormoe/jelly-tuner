@@ -86,6 +86,14 @@ def wait_for_input(prompt):
     _waiting_for_input = False
     return _last_input
 
+def stop_benchmark():
+    global _process
+    if _process:
+        log("Stopping benchmark...")
+        _process.terminate()
+    else:
+        log("No benchmark running to stop.")
+
 def send_input(text):
     global _master_fd, _waiting_for_input, _last_input
     

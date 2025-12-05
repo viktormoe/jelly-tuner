@@ -270,9 +270,15 @@
         </div>
 
         <div class="card controls">
-            <button id="startBtn" class="btn" onclick="startBenchmark()">
-                <span>🚀</span> Start Benchmark
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button id="startBtn" class="btn" onclick="startBenchmark()">
+                    <span>🚀</span> Start Benchmark
+                </button>
+                <button id="stopBtn" class="btn" onclick="stopBenchmark()" style="background-color: var(--error-color);"
+                    disabled>
+                    <span>🛑</span> Stop
+                </button>
+            </div>
 
             <div class="input-group">
                 <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
@@ -293,6 +299,7 @@
     <script>
         const statusText = document.getElementById('status-text');
         const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const logWindow = document.getElementById('log-window');
         let pollingInterval = null;
         let lastLogContent = "";
@@ -315,9 +322,11 @@
             if (data.status === 'Running') {
                 startBtn.disabled = true;
                 startBtn.innerHTML = '<span>⏳</span> Benchmarking...';
+                stopBtn.disabled = false;
             } else {
                 startBtn.disabled = false;
                 startBtn.innerHTML = '<span>🚀</span> Start Benchmark';
+                stopBtn.disabled = true;
             }
 
             if (data.logs && data.logs.length > 0) {
@@ -356,6 +365,17 @@
                 }
             } catch (e) {
                 console.error("Error starting benchmark:", e);
+            }
+        }
+
+        async function stopBenchmark() {
+            try {
+                const response = await fetch('/api/stop', { method: 'POST' });
+                if (!response.ok) {
+                    alert("Failed to stop benchmark");
+                }
+            } catch (e) {
+                console.error("Error stopping benchmark:", e);
             }
         }
 

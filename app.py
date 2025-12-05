@@ -58,6 +58,14 @@ def send_input():
     optimizer.send_input(text)
     return jsonify({"message": "Input sent"})
 
+@app.route('/api/stop', methods=['POST'])
+def stop_benchmark():
+    if state.status != "Running":
+        return jsonify({"error": "Benchmark not running"}), 400
+        
+    optimizer.stop_benchmark()
+    return jsonify({"message": "Benchmark stop requested"})
+
 @app.route('/api/status')
 def get_status():
     return jsonify({
