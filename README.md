@@ -1,104 +1,86 @@
 # 🎵 Jellyfin Auto-Tune
 
-Automated Transcoding Benchmark & Optimizer for Jellyfin
+**Jellyfin Auto-Tune** is a containerized tool designed to benchmark and optimize your Jellyfin hardware transcoding settings. It wraps the [jellybench](https://github.com/jellyfin/jellybench) tool in a user-friendly Web UI, making it easy to run tests, view real-time logs, and analyze results without needing to mess with complex command-line arguments.
 
-Jellyfin Auto-Tune is a Dockerized utility designed to take the guesswork out of configuring your media server. It runs a dedicated, isolated container to benchmark your hardware's transcoding capabilities (using jellybench_py) and uses the Jellyfin API to analyze your current settings, providing clear optimization recommendations.
+## ✨ Features
 
-## 🚀 Why use this?
+*   **Web Interface:** A modern, dark-themed Web UI to control the benchmark and view progress.
+*   **Dockerized:** Runs in a container with all dependencies (FFmpeg, Python, drivers) pre-configured.
+*   **Real-time Logging:** Stream benchmark logs directly to your browser.
+*   **Interactive:** Handle prompts (e.g., "Continue? y/n") directly from the Web UI.
+*   **Hardware Support:** Pre-configured for NVIDIA GPU passthrough (requires setup).
+*   **Result Access:** Downloaded videos and benchmark results are saved to a mounted volume for easy access.
 
-*   **Isolate Risk:** Benchmarking is resource-intensive. By running this in a separate container, you avoid crashing or stalling your main Jellyfin server process.
-*   **Data-Driven:** Stop guessing if VAAPI or QSV is faster. This tool runs the numbers ($1.5x$ vs $5.0x$) and tells you the truth.
-*   **Simple Setup:** No need to install Python, FFmpeg, or git on your host machine. Docker handles everything.
+## 🚀 Prerequisites
 
-## 🛠️ Project Structure
+*   **Docker** and **Docker Compose** installed on your system.
+*   **NVIDIA Container Toolkit** (if using NVIDIA GPU for transcoding).
+*   A running **Jellyfin** server (local or remote).
+*   A **Jellyfin API Key** (Generate one in Jellyfin Dashboard > API Keys).
 
-This project consists of four core files. Ensure these exist in your project directory before running:
+## 🛠️ Installation & Setup
 
-*   `Dockerfile`: Builds the environment with Python 3, FFmpeg, and the benchmark tools.
-*   `requirements.txt`: Lists Python dependencies (requests, flask).
-*   `optimizer.py`: The "brain" script that talks to the API and runs the benchmark.
-*   `app.py`: The Flask server that powers the Web UI.
-*   `docker-compose.yml`: configuration for running the container with hardware access.
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/viktormoe/jelly-tuner.git
+    cd jelly-tuner
+    ```
 
-## 📋 Prerequisites
-
-*   Docker & Docker Compose installed on your host machine.
-*   Hardware Drivers installed on the host (NVIDIA Drivers or Intel/AMD VAAPI drivers).
-*   **Jellyfin API Key:**
-    1.  Go to **Dashboard > Advanced > API Keys**.
-    2.  Create a new key named **Auto-Tune**.
-
-## ⚡ Quick Start
-
-### 1. Configuration
-
-1.  Copy the example configuration file:
+2.  **Configure Environment Variables:**
+    Copy the example environment file and edit it:
     ```bash
     cp .env.example .env
+    nano .env
     ```
-2.  Open `.env` and update the variables with your actual details:
+    Fill in your details:
+    *   `JELLYFIN_URL`: The URL of your Jellyfin server (e.g., `http://192.168.1.100:8096`).
+    *   `JELLYFIN_API_KEY`: Your Jellyfin API key.
+    *   `PORT`: The port to run the Web UI on (default: `5000`).
 
-    ```env
-    JELLYFIN_URL=http://192.168.1.50:8096
-    JELLYFIN_API_KEY=your_api_key_here
+3.  **Configure Hardware Acceleration (Important!):**
+    Open `docker-compose.yml`:
+    ```bash
+    nano docker-compose.yml
+    ```
+    *   **NVIDIA Users:** Ensure the `runtime: nvidia` and `deploy` sections are uncommented (they are by default).
+    *   **Intel/AMD Users:** You may need to comment out the NVIDIA sections and map `/dev/dri` devices instead.
+
+## ▶️ Usage
+
+1.  **Start the Container:**
+    ```bash
+    docker-compose up --build
     ```
 
-    *   `JELLYFIN_URL`: Your server's local IP address. **Do not use localhost.**
-    *   `JELLYFIN_API_KEY`: The key you generated in the prerequisites.
+2.  **Access the Web UI:**
+    Open your browser and navigate to:
+    `http://localhost:5000` (or the port you configured).
 
-### 2. Enable Hardware Access
+3.  **Run the Benchmark:**
+    *   Click the **Start Benchmark** button.
+    *   The status will change to "Running" and logs will appear in the terminal window.
 
-You must uncomment the hardware section in `docker-compose.yml` that matches your GPU:
+4.  **Interacting with the Benchmark:**
+    *   If the benchmark asks for input (e.g., "Continue (y/n):"), type your response in the input box below the start button and click **Send** (or press Enter).
+    *   Common prompts include confirming disclaimers or handling connection warnings.
 
-*   **Intel / AMD:** Uncomment the `devices: - /dev/dri:/dev/dri` section.
-*   **NVIDIA:** Uncomment the `deploy: resources: reservations...` section.
+## 📂 Accessing Results
 
-### 3. Run the Optimizer
-
-Open your terminal in the project folder and run:
+All benchmark data, including downloaded test videos and result files, is stored in the `jellybench_data` folder in your project directory. This folder is mounted to the container, so files persist even after the container stops.
 
 ```bash
-docker-compose up --build
+ls jellybench_data/
 ```
 
-### 4. Access the Web UI
+## ❓ Troubleshooting
 
-Open your browser and navigate to:
-[http://localhost:5000](http://localhost:5000)
+*   **"Connection failed":** Ensure your `JELLYFIN_URL` is reachable from within the container. If running Jellyfin on the same host, use the host's IP address, not `localhost`.
+*   **"GPU not found":**
+    *   Check if NVIDIA Container Toolkit is installed.
+    *   Verify `docker-compose.yml` has the correct `runtime` and `capabilities` set.
+    *   Check container logs for driver errors.
+*   **"404 Error" for FFmpeg:** The container automatically downloads and caches the correct FFmpeg version. If this fails, check your internet connection and try rebuilding.
 
-Click **"Start Benchmark"** to begin the tests. The logs and results will be displayed in the web interface.
+## 📜 License
 
-## 🐳 Docker Desktop & Docker Instructions
-
-This project is designed to run anywhere Docker runs, including Docker Desktop (Windows/Mac/Linux) and standard Docker Engine (Linux).
-
-### Running on Linux (Standard Docker)
-1.  Ensure `docker` and `docker-compose` are installed.
-2.  Verify hardware drivers (e.g., `ls /dev/dri` for Intel/AMD).
-3.  Run `docker compose up --build`.
-
-### Running on Docker Desktop (Windows/Mac)
-1.  Install Docker Desktop.
-2.  Ensure the Docker engine is running.
-3.  Open a terminal (PowerShell, CMD, or Terminal).
-4.  Navigate to the project folder.
-5.  Run `docker-compose up --build`.
-    *   **Note:** Hardware passthrough on Windows/Mac (especially for GPU) can be complex.
-        *   **Windows (WSL2):** Ensure you have the latest GPU drivers and WSL2 kernel updates. GPU passthrough works for NVIDIA (CUDA) and Intel (Compute), but VAAPI/QSV might have limitations depending on the WSL2 backend.
-        *   **Mac:** GPU passthrough is generally not supported for transcoding in the same way as Linux. This tool is best run on the actual server hardware hosting Jellyfin.
-
-## 🗺️ Roadmap
-
-*   **Phase 1 (Current):** Read settings via API, run Benchmark, Report Findings.
-*   **Phase 2 (Next):** Implement "Safe Backup" to save current Jellyfin config via API.
-*   **Phase 3 (Advanced):** Add "Auto-Apply" feature to update transcoding settings automatically via API POST request.
-
-## ⚠️ Disclaimer
-
-*   **High Load:** This tool runs stress tests. Your CPU/GPU usage will spike to 100% during the benchmark.
-*   **Beta Software:** `jellybench_py` is an alpha tool. Always monitor your server during the first run.
-
-## 🤝 Credits
-
-*   Powered by `jellybench_py` for the benchmarking engine.
-*   Built for the Jellyfin community.
+This project is open-source. Feel free to modify and distribute.

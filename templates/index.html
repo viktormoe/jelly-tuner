@@ -5,117 +5,257 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jellyfin Auto-Tune</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-color: #58a6ff;
+            --accent-hover: #1f6feb;
+            --success-color: #238636;
+            --error-color: #da3633;
+            --warning-color: #d29922;
+            --border-color: #30363d;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
         body {
-            background-color: #101010;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
             width: 100%;
-            background-color: #1f1f1f;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
         }
 
         h1 {
-            color: #00a4dc;
-            text-align: center;
-            margin-bottom: 30px;
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
         .status-bar {
-            background-color: #2a2a2a;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .status-text {
-            font-weight: bold;
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
         }
 
         .status-Idle {
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .status-Running {
-            color: #ffcc00;
+            color: var(--warning-color);
+            background-color: rgba(210, 153, 34, 0.15);
         }
 
         .status-Complete {
-            color: #00cc66;
+            color: var(--success-color);
+            background-color: rgba(35, 134, 54, 0.15);
         }
 
         .status-Error {
-            color: #ff4444;
+            color: var(--error-color);
+            background-color: rgba(218, 54, 51, 0.15);
         }
 
-        button {
-            background-color: #00a4dc;
-            color: white;
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #fff;
             border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
-            width: 100%;
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        button:hover {
-            background-color: #0085b2;
+        .btn:hover {
+            background-color: var(--accent-hover);
         }
 
-        button:disabled {
-            background-color: #444;
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
             cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
         }
 
         .log-window {
             background-color: #000;
             color: #00ff00;
-            font-family: 'Consolas', 'Monaco', monospace;
+            /* Classic terminal green */
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
             padding: 15px;
-            border-radius: 5px;
-            height: 300px;
+            border-radius: 8px;
+            height: 400px;
             overflow-y: auto;
-            margin-top: 20px;
             white-space: pre-wrap;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
+            line-height: 1.5;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        .log-window::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-window::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .log-window::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .log-window {
+                height: 300px;
+                font-size: 0.8rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>🎵 Jellyfin Auto-Tune</h1>
+        <header>
+            <h1>🎵 Jellyfin Auto-Tune</h1>
+        </header>
 
-        <div class="status-bar">
-            <span>Status: <span id="status-text" class="status-Idle">Idle</span></span>
-        </div>
-        <div class="controls">
-            <button id="startBtn" onclick="startBenchmark()">Start Benchmark</button>
-            <div class="input-group" style="margin-top: 10px;">
-                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)...">
-                <button onclick="sendInput()">Send</button>
+        <div class="card">
+            <div class="status-bar">
+                <span class="status-label">Current Status</span>
+                <span id="status-text" class="status-value status-Idle">Idle</span>
             </div>
         </div>
 
-        <div class="log-window" id="log-window">
-            Waiting to start...
+        <div class="card controls">
+            <button id="startBtn" class="btn" onclick="startBenchmark()">
+                <span>🚀</span> Start Benchmark
+            </button>
+
+            <div class="input-group">
+                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
+                    autocomplete="off">
+                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
+            </div>
         </div>
+
+        <div class="log-window" id="log-window">Waiting to start...</div>
     </div>
 
     <script>
@@ -123,33 +263,32 @@
         const startBtn = document.getElementById('startBtn');
         const logWindow = document.getElementById('log-window');
         let pollingInterval = null;
-
         let lastLogContent = "";
 
         function updateUI(data) {
             statusText.textContent = data.status;
-            statusText.className = `status-text status-${data.status}`;
+            // Remove old status classes
+            statusText.classList.remove('status-Idle', 'status-Running', 'status-Complete', 'status-Error');
+            // Add new status class
+            statusText.classList.add(`status-${data.status}`);
 
             if (data.status === 'Running') {
                 startBtn.disabled = true;
-                startBtn.textContent = "Benchmarking...";
+                startBtn.innerHTML = '<span>⏳</span> Benchmarking...';
             } else {
                 startBtn.disabled = false;
-                startBtn.textContent = "Start Benchmark";
+                startBtn.innerHTML = '<span>🚀</span> Start Benchmark';
             }
 
             if (data.logs && data.logs.length > 0) {
                 const newLogContent = data.logs.join('\n');
 
-                // Only update DOM if content changed to preserve selection when possible
                 if (newLogContent !== lastLogContent) {
-                    // Check if user is near the bottom before updating
                     const isScrolledToBottom = logWindow.scrollHeight - logWindow.clientHeight <= logWindow.scrollTop + 50;
 
                     logWindow.textContent = newLogContent;
                     lastLogContent = newLogContent;
 
-                    // Only auto-scroll if user was already at the bottom
                     if (isScrolledToBottom) {
                         logWindow.scrollTop = logWindow.scrollHeight;
                     }
@@ -171,7 +310,7 @@
             try {
                 const response = await fetch('/api/start', { method: 'POST' });
                 if (response.ok) {
-                    // Polling is handled by the interval
+                    // Polling continues via interval
                 } else {
                     alert("Failed to start benchmark");
                 }
@@ -199,14 +338,12 @@
             }
         }
 
-        // Allow pressing Enter to send
         document.getElementById('consoleInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 sendInput();
             }
         });
 
-        // Start polling
         setInterval(pollStatus, 1000);
         pollStatus();
     </script>
