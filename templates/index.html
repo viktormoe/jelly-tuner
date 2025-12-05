@@ -329,12 +329,6 @@
                     <span>🛑</span> Stop
                 </button>
             </div>
-
-            <div class="input-group">
-                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
-                    autocomplete="off">
-                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
-            </div>
         </div>
 
         <div class="card">
@@ -367,6 +361,11 @@
         </div>
 
         <div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
+                    autocomplete="off">
+                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
+            </div>
             <div class="log-controls">
                 <button class="icon-btn" onclick="clearLogs()" title="Clear Logs">🗑️</button>
                 <button class="icon-btn" onclick="adjustZoom(-1)" title="Zoom Out">➖</button>
