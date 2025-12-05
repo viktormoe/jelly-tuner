@@ -28,4 +28,7 @@ COPY templates/ templates/
 
 EXPOSE 5000
 
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+
 ENTRYPOINT ["python", "app.py"]
