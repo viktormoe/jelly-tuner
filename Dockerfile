@@ -14,5 +14,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY optimizer.py .
+COPY app.py .
+COPY templates/ templates/
 
-ENTRYPOINT ["python", "optimizer.py"]
+EXPOSE 5000
+
+ENTRYPOINT ["python", "app.py"]

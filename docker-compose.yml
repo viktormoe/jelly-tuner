@@ -6,6 +6,8 @@ services:
     environment:
       - JELLYFIN_URL=http://192.168.1.50:8096
       - JELLYFIN_API_KEY=your_api_key_here
+    ports:
+      - "5000:5000"
     # --- Hardware Acceleration Support ---
     # Uncomment the section below that matches your hardware.
 

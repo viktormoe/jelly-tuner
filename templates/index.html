@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jellyfin Auto-Tune</title>
+    <style>
+        body {
+            background-color: #101010;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #1f1f1f;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #00a4dc;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-bar {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-text {
+            font-weight: bold;
+        }
+        .status-Idle { color: #888; }
+        .status-Running { color: #ffcc00; }
+        .status-Complete { color: #00cc66; }
+        .status-Error { color: #ff4444; }
+
+        button {
+            background-color: #00a4dc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0085b2;
+        }
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+
+        .log-window {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Jellyfin Auto-Tune</h1>
+        
+        <div class="status-bar">
+            <span>Status: <span id="status-text" class="status-Idle">Idle</span></span>
+        </div>
+
+        <button id="start-btn" onclick="startBenchmark()">Start Benchmark</button>
+
+        <div class="log-window" id="log-window">
+            Waiting to start...
+        </div>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('status-text');
+        const startBtn = document.getElementById('start-btn');
+        const logWindow = document.getElementById('log-window');
+        let pollingInterval = null;
+
+        function updateUI(data) {
+            statusText.textContent = data.status;
+            statusText.className = `status-text status-${data.status}`;
+
+            if (data.status === 'Running') {
+                startBtn.disabled = true;
+                startBtn.textContent = "Benchmarking...";
+            } else {
+                startBtn.disabled = false;
+                startBtn.textContent = "Start Benchmark";
+            }
+
+            if (data.logs && data.logs.length > 0) {
+                logWindow.textContent = data.logs.join('\n');
+                logWindow.scrollTop = logWindow.scrollHeight;
+            }
+        }
+
+        async function pollStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                updateUI(data);
+                
+                if (data.status === 'Running') {
+                    if (!pollingInterval) {
+                        pollingInterval = setInterval(pollStatus, 1000);
+                    }
+                } else if (data.status !== 'Running' && pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
+            } catch (e) {
+                console.error("Polling error", e);
+            }
+        }
+
+        async function startBenchmark() {
+            try {
+                const response = await fetch('/api/start', { method: 'POST' });
+                if (response.ok) {
+                    pollStatus();
+                    pollingInterval = setInterval(pollStatus, 1000);
+                } else {
+                    alert("Failed to start benchmark");
+                }
+            } catch (e) {
+                alert("Error starting benchmark");
+            }
+        }
+
+        // Initial poll
+        pollStatus();
+    </script>
+</body>
+</html>
