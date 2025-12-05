@@ -273,9 +273,9 @@ def get_result_content(identifier):
             if found_log:
                 return log_content
             
-            return "No 'log' directory or .log files found."
+            return None # No logs found
             
-    return "Result not found."
+    return None # Result not found
 
 def get_system_info(url, api_key):
     headers = {'X-Emby-Token': api_key}

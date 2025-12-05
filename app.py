@@ -174,6 +174,29 @@ def get_result(filename):
     else:
         return jsonify({"error": "File not found"}), 404
 
+@app.route('/api/results/download/<path:filename>', methods=['GET'])
+def download_result(filename):
+    content = optimizer.get_result_content(filename)
+    if content is not None:
+        # Create a file-like object
+        from io import BytesIO
+        buffer = BytesIO()
+        buffer.write(content.encode('utf-8'))
+        buffer.seek(0)
+        
+        download_name = os.path.basename(filename)
+        if not download_name.endswith('.log') and not download_name.endswith('.txt'):
+            download_name += ".log"
+            
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype='text/plain'
+        )
+    else:
+        return jsonify({"error": "File not found"}), 404
+
 @app.route('/api/status')
 def get_status():
     return jsonify({

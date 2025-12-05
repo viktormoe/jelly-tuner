@@ -320,7 +320,7 @@
         </div>
 
         <div class="card controls">
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <button id="startBtn" class="btn" onclick="startBenchmark()">
                     <span>🚀</span> Start Benchmark
                 </button>
@@ -330,6 +330,11 @@
                 </button>
             </div>
 
+            <div class="input-group">
+                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
+                    autocomplete="off">
+                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
+            </div>
         </div>
 
         <div class="card">
@@ -362,11 +367,6 @@
         </div>
 
         <div>
-            <div class="input-group" style="margin-bottom: 10px;">
-                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)..."
-                    autocomplete="off">
-                <button class="btn" onclick="sendInput()" style="flex: 0 0 auto; min-width: 80px;">Send</button>
-            </div>
             <div class="log-controls">
                 <button class="icon-btn" onclick="clearLogs()" title="Clear Logs">🗑️</button>
                 <button class="icon-btn" onclick="adjustZoom(-1)" title="Zoom Out">➖</button>
@@ -702,12 +702,15 @@
                 }
 
                 list.innerHTML = results.map(r => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; cursor: pointer;" onclick="showResult('${r.filename}')">
-                        <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
+                        <div style="flex-grow: 1; cursor: pointer;" onclick="showResult('${r.filename}')">
                             <div style="font-weight: bold;">${r.filename}</div>
                             <div style="font-size: 0.8rem; color: var(--text-secondary);">${r.date}</div>
                         </div>
-                        <span style="font-size: 1.2rem;">📄</span>
+                        <div style="display: flex; gap: 5px;">
+                            <a href="/api/results/download/${r.filename}" class="btn" style="padding: 6px 10px; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center;" title="Download">⬇️</a>
+                            <button class="btn" onclick="showResult('${r.filename}')" style="padding: 6px 10px; font-size: 0.9rem;" title="View">📄</button>
+                        </div>
                     </div>
                 `).join('');
             } catch (e) {
