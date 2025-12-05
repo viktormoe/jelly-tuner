@@ -47,49 +47,105 @@ def check_jellyfin_connection(url, api_key):
         log(f"Failed to connect to Jellyfin: {e}")
         return False
 
+# Global variables
+_process = None
+_master_fd = None
+
+def send_input(text):
+    global _master_fd
+    if _master_fd is not None:
+        try:
+            log(f"Sending input: {text}")
+            os.write(_master_fd, (text + "\n").encode())
+        except Exception as e:
+            log(f"Failed to write to pty: {e}")
+    else:
+        log("No active process to receive input.")
+
 def run_benchmark():
+    global _process, _master_fd
     log("Starting Jellybench...")
-    # Assuming jellybench is available as a command or module.
-    # Since we installed it via git, let's try running it as a module or command.
-    # We'll try to run the 'main.py' or similar if we knew the structure, 
-    # but 'python -m jellybench' is a good guess if it's a package.
-    # Alternatively, if it installs a script 'jellybench'.
     
-    cmd = ["jellybench", "--help"] # Just to test presence first
+    import pty
+    import select
+    
+    # Create a pseudo-terminal
+    master_fd, slave_fd = pty.openpty()
+    _master_fd = master_fd
     
     try:
-        # We will try to run a simple benchmark. 
-        # Note: The README says it runs 'jellybench_py'.
-        # We might need to adjust this command based on how the package installs.
-        # For now, we'll simulate the output or try to run it if possible.
+        # Check if jellybench is available as a command
+        cmd = ["jellybench", "--ffmpeg", "/app/jellybench_data/ffmpeg"]
         
-        # REAL IMPLEMENTATION:
-        # We'll assume the user wants us to run the actual benchmark.
-        # Since we don't know the exact CLI args of jellybench_py without docs,
-        # we'll try to run it in a way that lists codecs or similar.
+        log("Running benchmark command: " + " ".join(cmd))
         
-        # However, to match the README's "Quick Start" output, we should try to actually run it.
-        # If we can't, we'll print a placeholder message explaining we are ready to run.
+        _process = subprocess.Popen(
+            cmd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            stdin=slave_fd,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+            preexec_fn=os.setsid # Create new session
+        )
         
-        log("Running benchmark (this may take a while)...")
-        # subprocess.run(["jellybench"], check=True) 
-        # Commented out to avoid hanging if it prompts for input.
+        os.close(slave_fd) # Close slave in parent
         
-        # Mocking the output for the sake of the 'skeleton' request if we can't run it.
-        # But the user asked to "make the project", so we should try to be correct.
-        
-        # Let's assume we just print the "Winner" logic here for now as a placeholder
-        # until we verify the CLI.
-        time.sleep(2) # Simulate work
-        log("[BENCH] h264_vaapi: 65fps")
-        time.sleep(1)
-        log("[BENCH] h264_qsv: 240fps")
-        
-        return {"h264_vaapi": 65, "h264_qsv": 240}
-        
+        # Read loop
+        buffer = ""
+        while True:
+            try:
+                r, w, e = select.select([master_fd], [], [], 0.1)
+                if master_fd in r:
+                    data = os.read(master_fd, 1024)
+                    if not data:
+                        break
+                    
+                    text = data.decode('utf-8', errors='replace')
+                    buffer += text
+                    
+                    # Process buffer for lines
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        log(line.strip())
+                    
+                    # If buffer has data but no newline (e.g. prompt), log it if it's been a while?
+                    # Or just log it immediately if it looks like a prompt?
+                    # For simplicity, let's just log whatever remains if it doesn't end in newline 
+                    # but we want to avoid spamming partial chars.
+                    # Actually, for the prompt "Continue (y/n): ", we want to see it.
+                    if buffer.strip().endswith(":"): # Heuristic for prompts
+                         log(buffer.strip())
+                         buffer = ""
+                         
+            except OSError:
+                break
+                
+            if _process.poll() is not None:
+                # Process finished, read remaining
+                # But select should handle it.
+                # If poll is not None, we should continue reading until EOF (read returns empty)
+                # But with PTY, read might throw EIO on close.
+                pass
+
+    except FileNotFoundError:
+        log("Error: 'jellybench' command not found.")
+        return {}
     except Exception as e:
         log(f"Benchmark failed: {e}")
         return {}
+    finally:
+        if _process and _process.poll() is None:
+            _process.terminate()
+        if _master_fd:
+            try:
+                os.close(_master_fd)
+            except:
+                pass
+        _process = None
+        _master_fd = None
+        log("Benchmark process finished.")
 
 def analyze_results(results):
     log("Analyzing results...")

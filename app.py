@@ -45,6 +45,19 @@ def start_benchmark():
     thread.start()
     return jsonify({"message": "Benchmark started"})
 
+@app.route('/api/input', methods=['POST'])
+def send_input():
+    if state.status != "Running":
+        return jsonify({"error": "Benchmark not running"}), 400
+    
+    data = request.json
+    text = data.get('input')
+    if text is None:
+        return jsonify({"error": "No input provided"}), 400
+        
+    optimizer.send_input(text)
+    return jsonify({"message": "Input sent"})
+
 @app.route('/api/status')
 def get_status():
     return jsonify({

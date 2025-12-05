@@ -1,7 +1,6 @@
-version: '3.8'
-
 services:
   jelly-tuner:
+    container_name: jelly-tuner
     build: .
     env_file:
       - .env
@@ -15,10 +14,10 @@ services:
     #   - /dev/dri:/dev/dri
 
     # NVIDIA
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ "gpu" ]
+    #deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [ "gpu" ]

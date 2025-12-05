@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,19 +16,22 @@
             flex-direction: column;
             align-items: center;
         }
+
         .container {
             max-width: 800px;
             width: 100%;
             background-color: #1f1f1f;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
+
         h1 {
             color: #00a4dc;
             text-align: center;
             margin-bottom: 30px;
         }
+
         .status-bar {
             background-color: #2a2a2a;
             padding: 15px;
@@ -37,13 +41,26 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .status-text {
             font-weight: bold;
         }
-        .status-Idle { color: #888; }
-        .status-Running { color: #ffcc00; }
-        .status-Complete { color: #00cc66; }
-        .status-Error { color: #ff4444; }
+
+        .status-Idle {
+            color: #888;
+        }
+
+        .status-Running {
+            color: #ffcc00;
+        }
+
+        .status-Complete {
+            color: #00cc66;
+        }
+
+        .status-Error {
+            color: #ff4444;
+        }
 
         button {
             background-color: #00a4dc;
@@ -56,9 +73,11 @@
             transition: background-color 0.2s;
             width: 100%;
         }
+
         button:hover {
             background-color: #0085b2;
         }
+
         button:disabled {
             background-color: #444;
             cursor: not-allowed;
@@ -78,15 +97,21 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>🎵 Jellyfin Auto-Tune</h1>
-        
+
         <div class="status-bar">
             <span>Status: <span id="status-text" class="status-Idle">Idle</span></span>
         </div>
-
-        <button id="start-btn" onclick="startBenchmark()">Start Benchmark</button>
+        <div class="controls">
+            <button id="startBtn" onclick="startBenchmark()">Start Benchmark</button>
+            <div class="input-group" style="margin-top: 10px;">
+                <input type="text" id="consoleInput" placeholder="Type input here (e.g., y, n, 1)...">
+                <button onclick="sendInput()">Send</button>
+            </div>
+        </div>
 
         <div class="log-window" id="log-window">
             Waiting to start...
@@ -95,7 +120,7 @@
 
     <script>
         const statusText = document.getElementById('status-text');
-        const startBtn = document.getElementById('start-btn');
+        const startBtn = document.getElementById('startBtn');
         const logWindow = document.getElementById('log-window');
         let pollingInterval = null;
 
@@ -122,15 +147,6 @@
                 const response = await fetch('/api/status');
                 const data = await response.json();
                 updateUI(data);
-                
-                if (data.status === 'Running') {
-                    if (!pollingInterval) {
-                        pollingInterval = setInterval(pollStatus, 1000);
-                    }
-                } else if (data.status !== 'Running' && pollingInterval) {
-                    clearInterval(pollingInterval);
-                    pollingInterval = null;
-                }
             } catch (e) {
                 console.error("Polling error", e);
             }
@@ -140,18 +156,45 @@
             try {
                 const response = await fetch('/api/start', { method: 'POST' });
                 if (response.ok) {
-                    pollStatus();
-                    pollingInterval = setInterval(pollStatus, 1000);
+                    // Polling is handled by the interval
                 } else {
                     alert("Failed to start benchmark");
                 }
             } catch (e) {
-                alert("Error starting benchmark");
+                console.error("Error starting benchmark:", e);
             }
         }
 
-        // Initial poll
+        async function sendInput() {
+            const inputField = document.getElementById('consoleInput');
+            const text = inputField.value;
+            if (!text) return;
+
+            try {
+                await fetch('/api/input', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ input: text })
+                });
+                inputField.value = '';
+            } catch (e) {
+                console.error("Error sending input:", e);
+            }
+        }
+
+        // Allow pressing Enter to send
+        document.getElementById('consoleInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendInput();
+            }
+        });
+
+        // Start polling
+        setInterval(pollStatus, 1000);
         pollStatus();
     </script>
 </body>
+
 </html>

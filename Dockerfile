@@ -6,7 +6,16 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
+    lshw \
+    pciutils \
+    dmidecode \
+    wget \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
+
+# Download Jellyfin FFmpeg tarball for jellybench to use
+RUN mkdir -p /app/jellybench_data/ffmpeg \
+    && wget https://repo.jellyfin.org/archive/ffmpeg/linux/7.0.2-3/amd64/jellyfin-ffmpeg_7.0.2-3_portable_linux64-gpl.tar.xz -O /app/jellybench_data/ffmpeg/jellyfin-ffmpeg_7.0.2-3_portable_linux64-gpl.tar.xz
 
 WORKDIR /app
 
