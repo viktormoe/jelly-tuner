@@ -6,7 +6,10 @@ services:
       - .env
     ports:
       - "5000:5000"
+    volumes:
+      - ./jellybench_data:/app/jellybench_data
 
+    # --- Hardware Acceleration Support ---
     privileged: true
     restart: unless-stopped
     runtime: nvidia
