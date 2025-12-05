@@ -32,8 +32,11 @@ This project consists of four core files. Ensure these exist in your project dir
 
 ### 1. Configuration
 
-1.  Rename `.env.example` to `.env` (if provided) or create a `.env` file.
-2.  Update the variables in `.env`:
+1.  Copy the example configuration file:
+    ```bash
+    cp .env.example .env
+    ```
+2.  Open `.env` and update the variables with your actual details:
 
     ```env
     JELLYFIN_URL=http://192.168.1.50:8096
