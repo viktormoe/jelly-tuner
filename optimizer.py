@@ -63,7 +63,7 @@ def set_jellyfin_config(url, api_key, config):
         log(f"Failed to update config: {e}")
         return False
 
-def backup_settings(url, api_key):
+def backup_settings(url, api_key, custom_name=None):
     log("Backing up current settings...")
     config = get_jellyfin_config(url, api_key)
     if not config:
@@ -73,7 +73,15 @@ def backup_settings(url, api_key):
     os.makedirs(backup_dir, exist_ok=True)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"backup_{timestamp}.json"
+    if custom_name:
+        # Sanitize name
+        safe_name = "".join([c for c in custom_name if c.isalnum() or c in ('-', '_')]).strip()
+        if not safe_name:
+            safe_name = "jelly-tune"
+        filename = f"{safe_name}_{timestamp}.json"
+    else:
+        filename = f"jelly-tune-{timestamp}.json"
+        
     filepath = os.path.join(backup_dir, filename)
     
     try:
@@ -119,11 +127,39 @@ def restore_settings(url, api_key, filename):
         log(f"Failed to load backup: {e}")
         return False
 
+def delete_backup(filename):
+    log(f"Deleting backup {filename}...")
+    backup_dir = "/app/jellybench_data/backups"
+    filepath = os.path.join(backup_dir, filename)
+    
+    if not os.path.exists(filepath):
+        log("Backup file not found.")
+        return False
+        
+    try:
+        os.remove(filepath)
+        log(f"Backup {filename} deleted.")
+        return True
+    except Exception as e:
+        log(f"Failed to delete backup: {e}")
+        return False
+
 def apply_recommendations(url, api_key, recommendations):
     log("Applying recommended settings...")
     # For now, recommendations is expected to be a full config object
     # In the future, this might merge specific changes into the current config
     return set_jellyfin_config(url, api_key, recommendations)
+
+def get_system_info(url, api_key):
+    headers = {'X-Emby-Token': api_key}
+    try:
+        info_url = f"{url}/System/Info"
+        r = requests.get(info_url, headers=headers, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        log(f"Failed to fetch system info: {e}")
+        return None
 
 def check_jellyfin_connection(url, api_key):
     log("Connecting to Jellyfin...")

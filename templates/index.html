@@ -253,6 +253,56 @@
                 width: 100%;
             }
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 
@@ -289,8 +339,12 @@
 
         <div class="card">
             <h3>🛠️ Settings Management</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn" onclick="createBackup()">💾 Backup Settings</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <button class="btn" onclick="openBackupModal()">💾 Backup Settings</button>
+                <button class="btn" onclick="showConfig()" style="background-color: var(--accent-hover);">👁️ Show
+                    Config</button>
+                <button class="btn" onclick="testConnection()" style="background-color: var(--warning-color);">📶 Test
+                    Connection</button>
                 <button class="btn" onclick="applyRecommendations()" style="background-color: var(--success-color);">✅
                     Apply Recommendations</button>
             </div>
@@ -305,10 +359,38 @@
 
         <div>
             <div class="log-controls">
+                <button class="icon-btn" onclick="clearLogs()" title="Clear Logs">🗑️</button>
                 <button class="icon-btn" onclick="adjustZoom(-1)" title="Zoom Out">➖</button>
                 <button class="icon-btn" onclick="adjustZoom(1)" title="Zoom In">➕</button>
             </div>
             <div class="log-window" id="log-window">Waiting to start...</div>
+        </div>
+    </div>
+
+    <!-- Backup Modal -->
+    <div class="modal-overlay" id="backupModal">
+        <div class="modal">
+            <h3>Create Backup</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 15px;">Enter a name for this backup (optional):</p>
+            <input type="text" id="backupName" placeholder="e.g., before-benchmark"
+                style="width: 100%; box-sizing: border-box;">
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('backupModal')"
+                    style="background-color: transparent; border: 1px solid var(--border-color);">Cancel</button>
+                <button class="btn" onclick="confirmBackup()">Create Backup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal" style="max-width: 800px; width: 90%;">
+            <h3>Current Configuration</h3>
+            <pre id="configContent"
+                style="background: #000; padding: 15px; border-radius: 6px; overflow: auto; max-height: 500px; font-family: var(--font-mono); font-size: 0.85rem; color: #00ff00;"></pre>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('configModal')">Close</button>
+            </div>
         </div>
     </div>
 
@@ -408,11 +490,15 @@
 
                 list.innerHTML = backups.map(b => `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
-                        <div>
+                        <div style="flex-grow: 1; margin-right: 10px;">
                             <div style="font-weight: bold;">${b.filename}</div>
                             <div style="font-size: 0.8rem; color: var(--text-secondary);">${b.date}</div>
                         </div>
-                        <button class="btn" onclick="restoreBackup('${b.filename}')" style="padding: 6px 12px; font-size: 0.9rem;">Restore</button>
+                        <div style="display: flex; gap: 5px;">
+                            <a href="/api/backup/download/${b.filename}" class="btn" style="padding: 6px 10px; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center;" title="Download">⬇️</a>
+                            <button class="btn" onclick="restoreBackup('${b.filename}')" style="padding: 6px 10px; font-size: 0.9rem;" title="Restore">↩️</button>
+                            <button class="btn" onclick="deleteBackup('${b.filename}')" style="padding: 6px 10px; font-size: 0.9rem; background-color: var(--error-color);" title="Delete">🗑️</button>
+                        </div>
                     </div>
                 `).join('');
             } catch (e) {
@@ -421,13 +507,44 @@
             }
         }
 
-        async function createBackup() {
-            if (!confirm("Create a new backup of current Jellyfin settings?")) return;
+        function openBackupModal() {
+            document.getElementById('backupModal').classList.add('active');
+            const nameInput = document.getElementById('backupName');
+
+            // Pre-fill with jelly-tune-YYYYMMDD_HHMMSS
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            nameInput.value = `jelly-tune-${year}${month}${day}_${hours}${minutes}${seconds}`;
+            nameInput.focus();
+            nameInput.select(); // Select all so user can easily overwrite if they want
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function confirmBackup() {
+            const nameInput = document.getElementById('backupName');
+            const customName = nameInput.value;
+
+            closeModal('backupModal');
+
             try {
-                const response = await fetch('/api/backup', { method: 'POST' });
+                const response = await fetch('/api/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: customName })
+                });
                 const data = await response.json();
                 if (response.ok) {
                     alert("Backup created: " + data.filename);
+                    nameInput.value = ''; // Reset input
                     loadBackups();
                 } else {
                     alert("Backup failed: " + data.error);
@@ -436,6 +553,67 @@
                 console.error("Error creating backup:", e);
                 alert("Error creating backup");
             }
+        }
+
+        async function deleteBackup(filename) {
+            if (!confirm(`Are you sure you want to DELETE backup ${filename}? This cannot be undone.`)) return;
+            try {
+                const response = await fetch('/api/backup/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+                if (response.ok) {
+                    loadBackups();
+                } else {
+                    const data = await response.json();
+                    alert("Delete failed: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error deleting backup:", e);
+                alert("Error deleting backup");
+            }
+        }
+
+        function clearLogs() {
+            logWindow.textContent = "";
+            lastLogContent = "";
+        }
+
+        async function testConnection() {
+            try {
+                const response = await fetch('/api/test-connection');
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`✅ Connected to Jellyfin!\nServer Name: ${data.info.ServerName}\nVersion: ${data.info.Version}`);
+                } else {
+                    alert(`❌ Connection Failed: ${data.message}`);
+                }
+            } catch (e) {
+                console.error("Error testing connection:", e);
+                alert("Error testing connection");
+            }
+        }
+
+        async function showConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('configContent').textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('configModal').classList.add('active');
+                } else {
+                    alert("Failed to fetch configuration");
+                }
+            } catch (e) {
+                console.error("Error fetching config:", e);
+                alert("Error fetching config");
+            }
+        }
+
+        async function createBackup() {
+            // Deprecated in favor of modal
+            openBackupModal();
         }
 
         async function restoreBackup(filename) {

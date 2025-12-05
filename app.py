@@ -73,9 +73,12 @@ def list_backups():
 
 @app.route('/api/backup', methods=['POST'])
 def create_backup():
+    data = request.json or {}
+    custom_name = data.get('name')
+    
     url = os.environ.get('JELLYFIN_URL')
     api_key = os.environ.get('JELLYFIN_API_KEY')
-    filename = optimizer.backup_settings(url, api_key)
+    filename = optimizer.backup_settings(url, api_key, custom_name)
     if filename:
         return jsonify({"message": "Backup created", "filename": filename})
     else:
@@ -112,6 +115,51 @@ def apply_settings():
         return jsonify({"message": "Settings applied successfully"})
     else:
         return jsonify({"error": "Failed to apply settings"}), 500
+
+@app.route('/api/backup/delete', methods=['POST'])
+def delete_backup():
+    data = request.json
+    filename = data.get('filename')
+    if not filename:
+        return jsonify({"error": "Filename required"}), 400
+        
+    success = optimizer.delete_backup(filename)
+    if success:
+        return jsonify({"message": "Backup deleted successfully"})
+    else:
+        return jsonify({"error": "Failed to delete backup"}), 500
+
+@app.route('/api/backup/download/<filename>', methods=['GET'])
+def download_backup(filename):
+    backup_dir = "/app/jellybench_data/backups"
+    filepath = os.path.join(backup_dir, filename)
+    if os.path.exists(filepath):
+        from flask import send_file
+        return send_file(filepath, as_attachment=True)
+    else:
+        return jsonify({"error": "File not found"}), 404
+
+@app.route('/api/test-connection', methods=['GET'])
+def test_connection():
+    url = os.environ.get('JELLYFIN_URL')
+    api_key = os.environ.get('JELLYFIN_API_KEY')
+    
+    info = optimizer.get_system_info(url, api_key)
+    if info:
+        return jsonify({"status": "success", "info": info})
+    else:
+        return jsonify({"status": "error", "message": "Failed to connect to Jellyfin"}), 500
+
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    url = os.environ.get('JELLYFIN_URL')
+    api_key = os.environ.get('JELLYFIN_API_KEY')
+    
+    config = optimizer.get_jellyfin_config(url, api_key)
+    if config:
+        return jsonify(config)
+    else:
+        return jsonify({"error": "Failed to fetch configuration"}), 500
 
 @app.route('/api/status')
 def get_status():
