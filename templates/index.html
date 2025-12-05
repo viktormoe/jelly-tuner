@@ -124,6 +124,8 @@
         const logWindow = document.getElementById('log-window');
         let pollingInterval = null;
 
+        let lastLogContent = "";
+
         function updateUI(data) {
             statusText.textContent = data.status;
             statusText.className = `status-text status-${data.status}`;
@@ -137,8 +139,21 @@
             }
 
             if (data.logs && data.logs.length > 0) {
-                logWindow.textContent = data.logs.join('\n');
-                logWindow.scrollTop = logWindow.scrollHeight;
+                const newLogContent = data.logs.join('\n');
+
+                // Only update DOM if content changed to preserve selection when possible
+                if (newLogContent !== lastLogContent) {
+                    // Check if user is near the bottom before updating
+                    const isScrolledToBottom = logWindow.scrollHeight - logWindow.clientHeight <= logWindow.scrollTop + 50;
+
+                    logWindow.textContent = newLogContent;
+                    lastLogContent = newLogContent;
+
+                    // Only auto-scroll if user was already at the bottom
+                    if (isScrolledToBottom) {
+                        logWindow.scrollTop = logWindow.scrollHeight;
+                    }
+                }
             }
         }
 
