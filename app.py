@@ -102,14 +102,9 @@ def restore_backup():
 
 @app.route('/api/apply', methods=['POST'])
 def apply_settings():
-    data = request.json
-    config = data.get('config')
-    if not config:
-        return jsonify({"error": "Config required"}), 400
-        
     url = os.environ.get('JELLYFIN_URL')
     api_key = os.environ.get('JELLYFIN_API_KEY')
-    success = optimizer.apply_recommendations(url, api_key, config)
+    success = optimizer.apply_recommendations(url, api_key)
     
     if success:
         return jsonify({"message": "Settings applied successfully"})

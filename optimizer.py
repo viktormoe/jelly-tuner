@@ -144,10 +144,78 @@ def delete_backup(filename):
         log(f"Failed to delete backup: {e}")
         return False
 
-def apply_recommendations(url, api_key, recommendations):
-    log("Applying recommended settings...")
-    # For now, recommendations is expected to be a full config object
-    # In the future, this might merge specific changes into the current config
+def analyze_results():
+    """
+    Analyzes the latest benchmark result to determine optimal settings.
+    Returns a dictionary of recommended Jellyfin configuration changes.
+    """
+    results = list_results()
+    if not results:
+        return None
+    
+    # Get the latest result
+    latest_run = results[0]
+    identifier = latest_run['filename']
+    
+    data_dir = "/app/jellybench_data"
+    dir_path = os.path.join(data_dir, identifier)
+    
+    # Try to read output.json
+    json_path = os.path.join(dir_path, "output.json")
+    if os.path.exists(json_path):
+        try:
+            import json
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+                
+            # Logic to determine best settings from data
+            # This is a simplified example based on common jellybench output structure
+            # We look for the hardware acceleration type that performed best
+            
+            recommendations = {}
+            
+            # Check for NVIDIA success
+            if "nvidia" in str(data).lower() or "nvenc" in str(data).lower():
+                 recommendations["TranscodingTech"] = "NVENC"
+                 recommendations["EnableHardwareEncoding"] = True
+                 recommendations["EnableHardwareDecoding"] = True
+            elif "vaapi" in str(data).lower():
+                 recommendations["TranscodingTech"] = "VAAPI"
+                 recommendations["EnableHardwareEncoding"] = True
+                 recommendations["EnableHardwareDecoding"] = True
+            elif "qsv" in str(data).lower():
+                 recommendations["TranscodingTech"] = "QSV"
+                 recommendations["EnableHardwareEncoding"] = True
+                 recommendations["EnableHardwareDecoding"] = True
+            
+            # If we found something, return it
+            if recommendations:
+                return recommendations
+                
+        except Exception as e:
+            log(f"Error analyzing output.json: {e}")
+            
+    # Fallback: Parse logs if JSON fails or doesn't exist
+    # (Simplified fallback logic)
+    log_content = get_result_content(identifier)
+    if log_content:
+        if "nvenc" in log_content.lower():
+            return {
+                "TranscodingTech": "NVENC",
+                "EnableHardwareEncoding": True,
+                "EnableHardwareDecoding": True
+            }
+            
+    return None
+
+def apply_recommendations(url, api_key):
+    recommendations = analyze_results()
+    
+    if not recommendations:
+        log("No recommendations could be generated from previous runs.")
+        return False
+        
+    log(f"Applying recommendations: {recommendations}")
     return set_jellyfin_config(url, api_key, recommendations)
 
 def list_results():
