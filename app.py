@@ -115,6 +115,8 @@ def apply_settings():
 def get_recommendations():
     recommendations = optimizer.analyze_results()
     if recommendations:
+        if "error" in recommendations:
+             return jsonify(recommendations), 404
         return jsonify(recommendations)
     else:
         return jsonify({"error": "No recommendations available"}), 404

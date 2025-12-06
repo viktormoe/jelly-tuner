@@ -152,7 +152,7 @@ def analyze_results():
     results = list_results()
     if not results:
         log("analyze_results: No results found in list_results()")
-        return None
+        return {"error": "No results found in history"}
     
     # Get the latest result
     latest_run = results[0]
@@ -169,14 +169,8 @@ def analyze_results():
             import json
             with open(json_path, 'r') as f:
                 data = json.load(f)
-                
-            # Logic to determine best settings from data
-            # This is a simplified example based on common jellybench output structure
-            # We look for the hardware acceleration type that performed best
             
             recommendations = {}
-            
-            # Check for NVIDIA success
             if "nvidia" in str(data).lower() or "nvenc" in str(data).lower():
                  recommendations["TranscodingTech"] = "NVENC"
                  recommendations["EnableHardwareEncoding"] = True
@@ -190,7 +184,6 @@ def analyze_results():
                  recommendations["EnableHardwareEncoding"] = True
                  recommendations["EnableHardwareDecoding"] = True
             
-            # If we found something, return it
             if recommendations:
                 log(f"analyze_results: Found recommendations in JSON: {recommendations}")
                 return recommendations
@@ -207,32 +200,29 @@ def analyze_results():
         content_lower = log_content.lower()
         
         if "nvenc" in content_lower or "cuda" in content_lower:
-            log("analyze_results: Found 'nvenc'/'cuda' in logs")
             return {
                 "TranscodingTech": "NVENC",
                 "EnableHardwareEncoding": True,
                 "EnableHardwareDecoding": True
             }
         elif "vaapi" in content_lower:
-            log("analyze_results: Found 'vaapi' in logs")
             return {
                 "TranscodingTech": "VAAPI",
                 "EnableHardwareEncoding": True,
                 "EnableHardwareDecoding": True
             }
         elif "qsv" in content_lower or "quicksync" in content_lower:
-            log("analyze_results: Found 'qsv' in logs")
             return {
                 "TranscodingTech": "QSV",
                 "EnableHardwareEncoding": True,
                 "EnableHardwareDecoding": True
             }
         else:
-            log("analyze_results: No hardware acceleration keywords found in logs")
+            return {"error": f"No hardware acceleration keywords found in logs for {identifier}"}
     else:
-        log(f"analyze_results: get_result_content returned invalid content: {str(log_content)[:50]}...")
+        return {"error": f"Could not read logs for {identifier}: {str(log_content)[:100]}"}
             
-    return None
+    return {"error": "Unknown analysis error"}
 
 def apply_recommendations(url, api_key):
     recommendations = analyze_results()
