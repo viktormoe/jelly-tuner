@@ -277,6 +277,44 @@ def get_result_content(identifier):
             
     return None # Result not found
 
+def create_result_zip(identifier):
+    import zipfile
+    from io import BytesIO
+    
+    data_dir = "/app/jellybench_data"
+    
+    # Check if it's one of my console logs
+    if identifier.startswith("results/"):
+        filepath = os.path.join(data_dir, identifier)
+        if os.path.exists(filepath):
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                zip_file.write(filepath, os.path.basename(filepath))
+            buffer.seek(0)
+            return buffer
+        return None
+
+    # Otherwise assume it's a directory name (results_run-...)
+    dir_path = os.path.join(data_dir, identifier)
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        log_dir = os.path.join(dir_path, "log")
+        target_dir = log_dir if (os.path.exists(log_dir) and os.path.isdir(log_dir)) else dir_path
+        
+        buffer = BytesIO()
+        has_files = False
+        with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for fname in os.listdir(target_dir):
+                if fname.endswith(".log") or fname.endswith(".txt"):
+                    file_path = os.path.join(target_dir, fname)
+                    zip_file.write(file_path, fname)
+                    has_files = True
+        
+        if has_files:
+            buffer.seek(0)
+            return buffer
+            
+    return None
+
 def get_system_info(url, api_key):
     headers = {'X-Emby-Token': api_key}
     try:
