@@ -222,7 +222,7 @@ def get_result_content(identifier):
             jb_log = os.path.join(log_dir, "jellybench.log")
             if os.path.exists(jb_log):
                 found_log = True
-                log_content += "--- jellybench.log ---\n"
+                log_content += f"\n{'='*40}\n   FILE: jellybench.log   \n{'='*40}\n\n"
                 try:
                     with open(jb_log, 'r') as f:
                         log_content += f.read()
@@ -234,7 +234,7 @@ def get_result_content(identifier):
             ffmpeg_log = os.path.join(log_dir, "jellybench-ffmpeg.log")
             if os.path.exists(ffmpeg_log):
                 found_log = True
-                log_content += "--- jellybench-ffmpeg.log ---\n"
+                log_content += f"\n{'='*40}\n   FILE: jellybench-ffmpeg.log   \n{'='*40}\n\n"
                 try:
                     with open(ffmpeg_log, 'r') as f:
                         log_content += f.read()
