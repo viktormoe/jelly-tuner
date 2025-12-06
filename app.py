@@ -111,6 +111,14 @@ def apply_settings():
     else:
         return jsonify({"error": "Failed to apply settings"}), 500
 
+@app.route('/api/recommendations', methods=['GET'])
+def get_recommendations():
+    recommendations = optimizer.analyze_results()
+    if recommendations:
+        return jsonify(recommendations)
+    else:
+        return jsonify({"error": "No recommendations available"}), 404
+
 @app.route('/api/backup/delete', methods=['POST'])
 def delete_backup():
     data = request.json

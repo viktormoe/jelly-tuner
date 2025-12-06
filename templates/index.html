@@ -328,8 +328,8 @@
                     Config</button>
                 <button class="btn" onclick="testConnection()" style="background-color: var(--warning-color);">📶 Test
                     Connection</button>
-                <button class="btn" onclick="applyRecommendations()" style="background-color: var(--success-color);">✅
-                    Apply Recommendations</button>
+                <button class="btn" onclick="showRecommendations()" style="background-color: var(--success-color);">💡
+                    Show Recommendations</button>
             </div>
 
             <h4>Available Backups</h4>
@@ -411,6 +411,34 @@
                 style="background: #000; padding: 15px; border-radius: 6px; overflow: auto; max-height: 500px; font-family: var(--font-mono); font-size: 0.85rem; color: #00ff00;"></pre>
             <div class="modal-actions">
                 <button class="btn" onclick="closeModal('resultModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendation Modal -->
+    <div class="modal-overlay" id="recModal">
+        <div class="modal" style="max-width: 600px; width: 90%;">
+            <h3>💡 Recommended Settings</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 15px;">Based on your latest benchmark run:</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; color: var(--text-primary);">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); text-align: left;">
+                        <th style="padding: 8px;">Setting</th>
+                        <th style="padding: 8px;">Current</th>
+                        <th style="padding: 8px; color: var(--success-color);">Recommended</th>
+                    </tr>
+                </thead>
+                <tbody id="recTableBody">
+                    <!-- Rows will be added here -->
+                </tbody>
+            </table>
+
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('recModal')"
+                    style="background-color: transparent; border: 1px solid var(--border-color);">Cancel</button>
+                <button class="btn" onclick="confirmApplyRecs()" style="background-color: var(--success-color);">✅ Apply
+                    Changes</button>
             </div>
         </div>
     </div>
@@ -676,11 +704,60 @@
             }
         }
 
-        async function applyRecommendations() {
-            if (!confirm("Apply recommended settings? (Note: This is a placeholder action for now)")) return;
-            // In a real scenario, we'd pass the recommended config here.
-            // For now, we'll just hit the endpoint with a dummy config or handle it on backend.
-            alert("Recommendation application logic is ready but waiting for benchmark results integration.");
+        async function showRecommendations() {
+            try {
+                // 1. Fetch current config
+                const configResp = await fetch('/api/config');
+                const currentConfig = await configResp.json();
+
+                // 2. Fetch recommendations
+                const recResp = await fetch('/api/recommendations');
+                if (!recResp.ok) {
+                    alert("No recommendations available. Run a benchmark first!");
+                    return;
+                }
+                const recommendations = await recResp.json();
+
+                // 3. Build comparison table
+                const tbody = document.getElementById('recTableBody');
+                tbody.innerHTML = '';
+
+                for (const [key, recValue] of Object.entries(recommendations)) {
+                    const currentValue = currentConfig[key] !== undefined ? currentConfig[key] : 'Unknown';
+
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                    row.innerHTML = `
+                        <td style="padding: 8px; font-family: var(--font-mono); font-size: 0.9rem;">${key}</td>
+                        <td style="padding: 8px; color: var(--text-secondary);">${currentValue}</td>
+                        <td style="padding: 8px; font-weight: bold; color: var(--success-color);">${recValue}</td>
+                    `;
+                    tbody.appendChild(row);
+                }
+
+                document.getElementById('recModal').classList.add('active');
+
+            } catch (e) {
+                console.error("Error showing recommendations:", e);
+                alert("Error fetching data for recommendations.");
+            }
+        }
+
+        async function confirmApplyRecs() {
+            closeModal('recModal');
+            try {
+                const response = await fetch('/api/apply', { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert("✅ Settings applied successfully!");
+                    // Optionally refresh config view if open
+                } else {
+                    alert("❌ Failed to apply settings: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error applying recommendations:", e);
+                alert("Error applying recommendations");
+            }
         }
 
         // Allow pressing Enter to send
