@@ -201,21 +201,36 @@ def analyze_results():
         log(f"analyze_results: output.json not found at {json_path}")
             
     # Fallback: Parse logs if JSON fails or doesn't exist
-    # (Simplified fallback logic)
     log_content = get_result_content(identifier)
-    if log_content:
+    if log_content and not log_content.startswith("Error") and not log_content.startswith("No .log"):
         log(f"analyze_results: Parsing log content (len={len(log_content)})")
-        if "nvenc" in log_content.lower():
-            log("analyze_results: Found 'nvenc' in logs")
+        content_lower = log_content.lower()
+        
+        if "nvenc" in content_lower or "cuda" in content_lower:
+            log("analyze_results: Found 'nvenc'/'cuda' in logs")
             return {
                 "TranscodingTech": "NVENC",
                 "EnableHardwareEncoding": True,
                 "EnableHardwareDecoding": True
             }
+        elif "vaapi" in content_lower:
+            log("analyze_results: Found 'vaapi' in logs")
+            return {
+                "TranscodingTech": "VAAPI",
+                "EnableHardwareEncoding": True,
+                "EnableHardwareDecoding": True
+            }
+        elif "qsv" in content_lower or "quicksync" in content_lower:
+            log("analyze_results: Found 'qsv' in logs")
+            return {
+                "TranscodingTech": "QSV",
+                "EnableHardwareEncoding": True,
+                "EnableHardwareDecoding": True
+            }
         else:
-            log("analyze_results: 'nvenc' not found in logs")
+            log("analyze_results: No hardware acceleration keywords found in logs")
     else:
-        log("analyze_results: get_result_content returned None or empty")
+        log(f"analyze_results: get_result_content returned invalid content: {str(log_content)[:50]}...")
             
     return None
 
