@@ -222,6 +222,7 @@ def get_result_content(identifier):
             if not log_files:
                 return "No .log files found in the 'log' subdirectory."
 
+            log_content = ""
             for fname in log_files:
                 log_path = os.path.join(log_dir, fname)
                 log_content += f"\n{'='*40}\n   FILE: {fname}   \n{'='*40}\n\n"
