@@ -704,6 +704,24 @@
             }
         }
 
+        async function deleteResult(filename) {
+            if (!confirm(`Are you sure you want to delete result "${filename}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/results/delete/${filename}`, { method: 'DELETE' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    loadResults(); // Refresh list
+                } else {
+                    alert("Failed to delete result: " + data.error);
+                }
+            } catch (e) {
+                console.error("Error deleting result:", e);
+                alert("Error deleting result");
+            }
+        }
+
         async function showRecommendations() {
             try {
                 // 1. Fetch current config
@@ -744,19 +762,50 @@
         }
 
         async function confirmApplyRecs() {
+            // 1. Create Backup
+            const statusText = document.getElementById('status-text');
+            const originalStatus = statusText.innerText;
+            statusText.innerText = "Backing up...";
+
+            try {
+                const backupName = "pre-apply-backup-" + new Date().toISOString().replace(/[:.]/g, '-');
+                const backupResp = await fetch('/api/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: backupName })
+                });
+
+                if (!backupResp.ok) {
+                    const err = await backupResp.json();
+                    alert("❌ Auto-backup failed: " + err.error + ". Aborting apply.");
+                    statusText.innerText = originalStatus;
+                    return;
+                }
+            } catch (e) {
+                console.error("Backup error:", e);
+                alert("❌ Auto-backup failed. Aborting apply.");
+                statusText.innerText = originalStatus;
+                return;
+            }
+
+            // 2. Apply Recommendations
             closeModal('recModal');
+            statusText.innerText = "Applying settings...";
+
             try {
                 const response = await fetch('/api/apply', { method: 'POST' });
                 const data = await response.json();
                 if (response.ok) {
-                    alert("✅ Settings applied successfully!");
-                    // Optionally refresh config view if open
+                    alert("✅ Settings applied successfully! (Backup created)");
+                    loadBackups(); // Refresh backup list
                 } else {
                     alert("❌ Failed to apply settings: " + data.error);
                 }
             } catch (e) {
                 console.error("Error applying recommendations:", e);
                 alert("Error applying recommendations");
+            } finally {
+                statusText.innerText = "Idle";
             }
         }
 

@@ -194,6 +194,14 @@ def download_result(filename):
     else:
         return jsonify({"error": "File not found or empty"}), 404
 
+@app.route('/api/results/delete/<path:filename>', methods=['DELETE'])
+def delete_result(filename):
+    success = optimizer.delete_result(filename)
+    if success:
+        return jsonify({"message": "Result deleted successfully"})
+    else:
+        return jsonify({"error": "Failed to delete result"}), 500
+
 @app.route('/api/status')
 def get_status():
     return jsonify({

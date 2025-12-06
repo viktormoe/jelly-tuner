@@ -151,11 +151,13 @@ def analyze_results():
     """
     results = list_results()
     if not results:
+        log("analyze_results: No results found in list_results()")
         return None
     
     # Get the latest result
     latest_run = results[0]
     identifier = latest_run['filename']
+    log(f"analyze_results: Analyzing latest run: {identifier}")
     
     data_dir = "/app/jellybench_data"
     dir_path = os.path.join(data_dir, identifier)
@@ -190,21 +192,30 @@ def analyze_results():
             
             # If we found something, return it
             if recommendations:
+                log(f"analyze_results: Found recommendations in JSON: {recommendations}")
                 return recommendations
                 
         except Exception as e:
             log(f"Error analyzing output.json: {e}")
+    else:
+        log(f"analyze_results: output.json not found at {json_path}")
             
     # Fallback: Parse logs if JSON fails or doesn't exist
     # (Simplified fallback logic)
     log_content = get_result_content(identifier)
     if log_content:
+        log(f"analyze_results: Parsing log content (len={len(log_content)})")
         if "nvenc" in log_content.lower():
+            log("analyze_results: Found 'nvenc' in logs")
             return {
                 "TranscodingTech": "NVENC",
                 "EnableHardwareEncoding": True,
                 "EnableHardwareDecoding": True
             }
+        else:
+            log("analyze_results: 'nvenc' not found in logs")
+    else:
+        log("analyze_results: get_result_content returned None or empty")
             
     return None
 
@@ -359,6 +370,34 @@ def create_result_zip(identifier):
             return buffer
             
     return None
+
+def delete_result(identifier):
+    data_dir = "/app/jellybench_data"
+    
+    # Check if it's one of my console logs
+    if identifier.startswith("results/"):
+        filepath = os.path.join(data_dir, identifier)
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+                return True
+            except Exception as e:
+                log(f"Error deleting file {filepath}: {e}")
+                return False
+        return False
+
+    # Otherwise assume it's a directory name (results_run-...)
+    dir_path = os.path.join(data_dir, identifier)
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        try:
+            import shutil
+            shutil.rmtree(dir_path)
+            return True
+        except Exception as e:
+            log(f"Error deleting directory {dir_path}: {e}")
+            return False
+            
+    return False
 
 def get_system_info(url, api_key):
     headers = {'X-Emby-Token': api_key}
